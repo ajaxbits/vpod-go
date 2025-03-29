@@ -1,11 +1,31 @@
 package main
 
+import (
+	"encoding/json"
+	"time"
+)
+
+type UnixTime struct {
+	time.Time
+}
+
+func (u *UnixTime) UnmarshalJSON(b []byte) error {
+	var timestamp int64
+	err := json.Unmarshal(b, &timestamp)
+	if err != nil {
+		return err
+	}
+	u.Time = time.Unix(timestamp, 0)
+	return nil
+}
+
 type YouTubeChannel struct {
 	Description string
 	Id          string            `json:"channel_id"`
 	Playlists   []YouTubePlaylist `json:"entries"`
 	Title       string
-	Url         string `json:"channel_url"`
+	LastUpdated UnixTime `json:"epoch"`
+	Url         string   `json:"channel_url"`
 }
 
 type YouTubePlaylist struct {
@@ -25,8 +45,8 @@ type YouTubeVideo struct {
 	Description      string
 	Formats          []YouTubeVideoFormat
 	Id               string
-	PlaylistId       string `json:"playlist_id"`
-	ReleaseTimestamp int
+	PlaylistId       string   `json:"playlist_id"`
+	ReleaseTimestamp UnixTime `json:"release_timestamp"` // TODO: check that this is actually a unixtime lol
 	Thumbnail        string
 	Title            string
 	Url              string `json:"webpage_url"`
