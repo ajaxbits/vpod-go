@@ -46,6 +46,7 @@
               go-tools
               gopls
               gotools
+              just
               pkgsLatest.yt-dlp
             ];
           };
