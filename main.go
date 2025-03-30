@@ -38,25 +38,44 @@ func main() {
 	now := time.Now()
 	db.CreateFeed(context.Background(), database, &c.Title, &c.Id, &c.Description, &c.Url)
 	podcast_feed := podcast.New(c.Title, c.Url, c.Description, &now, &now)
+	podcast_feed.AddSummary(c.Description)
+	podcast_feed.IExplicit = "no"
 
 	for i := 0; i < len(c.Playlists[0].Videos); i++ {
 		v := c.Playlists[0].Videos[i]
 
-		i := podcast.Item{
+		item := podcast.Item{
 			Title:       v.Title,
 			Description: v.Description,
 			Link:        v.Url,
 		}
 		d := v.ReleaseTimestamp.Time
-		i.AddPubDate(&d)
+		item.AddPubDate(&d)
 
-		if _, err := podcast_feed.AddItem(i); err != nil {
+		acceptable_file_found := false
+		for i := 0; i < len(v.Formats); i++ {
+			f := v.Formats[i]
+			audio_only := f.Resolution == "audio only"
+			correct_ext := f.AudioExt == "m4a"
+			no_drm := !f.Drm
+
+			if audio_only && correct_ext && no_drm {
+				acceptable_file_found = true
+				item.AddEnclosure(f.Url, podcast.M4A, f.Filesize) // TODO: set proper url here
+				break
+			}
+		}
+
+		if !acceptable_file_found {
+			fmt.Println("No acceptable file found, moving on.")
+			continue
+		}
+
+		if _, err := podcast_feed.AddItem(item); err != nil {
 			log.Fatal(err)
 		}
 
-		fmt.Println(i.Title)
-		fmt.Println(i.Description)
-		fmt.Println(i.Link)
-		fmt.Println(i.PubDateFormatted)
+		fmt.Println(item.Title)
+		fmt.Println(item.Enclosure)
 	}
 }

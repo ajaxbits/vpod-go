@@ -24,7 +24,7 @@ type YouTubeChannel struct {
 	Id          string            `json:"channel_id"`
 	Playlists   []YouTubePlaylist `json:"entries"`
 	Title       string
-	Url         string   `json:"channel_url"`
+	Url         string `json:"channel_url"`
 }
 
 type YouTubePlaylist struct {
@@ -64,8 +64,8 @@ type YouTubeVideoFormat struct {
 	Ext           string
 
 	// no idea what the difference between these two is
-	Filesize       int
-	FilesizeApprox int `json:"filesize_approx"`
+	Filesize       int64
+	FilesizeApprox int64 `json:"filesize_approx"`
 
 	Id         string `json:"format_id"`
 	Protocol   string
