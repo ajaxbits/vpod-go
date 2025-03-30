@@ -127,14 +127,11 @@ func genFeed(ytPathPart string, database *sql.DB, cCtx *cli.Context) string {
 	podcastFeed.IBlock = "Yes"
 	podcastFeed.Generator = "vpod"
 
-	for i := 0; i < len(c.Playlists[0].Videos); i++ {
-		v := c.Playlists[0].Videos[i]
-
-		acceptable_file_found := false
+	for _, v := range c.Videos {
 		var enclosureUrl string
-		var enclosureFilesize int64
-		for i := 0; i < len(v.Formats); i++ {
-			f := v.Formats[i]
+		var enclosureLengthBytes int64
+		acceptable_file_found := false
+		for _, f := range v.Formats {
 			audio_only := f.Resolution == "audio only"
 			correct_ext := f.AudioExt == "m4a"
 			no_drm := !f.Drm
@@ -143,7 +140,7 @@ func genFeed(ytPathPart string, database *sql.DB, cCtx *cli.Context) string {
 			if audio_only && correct_ext && no_drm && no_dynamic_range_compression {
 				acceptable_file_found = true
 				enclosureUrl = fmt.Sprintf("%s/audio/%s/%s", base_url, v.Id, f.Id)
-				enclosureFilesize = f.Filesize
+				enclosureLengthBytes = f.Filesize
 				break
 			}
 		}
@@ -161,7 +158,7 @@ func genFeed(ytPathPart string, database *sql.DB, cCtx *cli.Context) string {
 		item.AddPubDate(&d)
 		item.AddDuration(v.Duration)
 		item.AddImage(v.Thumbnail)
-		item.AddEnclosure(enclosureUrl, podcast.M4A, enclosureFilesize)
+		item.AddEnclosure(enclosureUrl, podcast.M4A, enclosureLengthBytes)
 
 		if _, err := podcastFeed.AddItem(item); err != nil {
 			log.Fatal(err)

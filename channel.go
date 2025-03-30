@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"strings"
 	"time"
 )
 
@@ -24,9 +25,58 @@ type YouTubeChannel struct {
 	Description string
 	Id          string               `json:"channel_id"`
 	Logos       []YouTubeChannelLogo `json:"thumbnails"`
-	Playlists   []YouTubePlaylist    `json:"entries"`
+	Videos      []YouTubeVideo       `json:"entries"`
 	Title       string
 	Url         string `json:"channel_url"`
+}
+
+func (ytc *YouTubeChannel) UnmarshalJSON(data []byte) error {
+	var tmp struct {
+		Author      string `json:"uploader"`
+		Description string
+		Entries     json.RawMessage      `json:"entries"`
+		Id          string               `json:"channel_id"`
+		Logos       []YouTubeChannelLogo `json:"thumbnails"`
+		Title       string
+		Url         string `json:"channel_url"`
+	}
+	if err := json.Unmarshal(data, &tmp); err != nil {
+		return err
+	}
+
+	var firstEntry []map[string]interface{}
+	if err := json.Unmarshal(tmp.Entries, &firstEntry); err != nil {
+		return err
+	}
+	eType, typeKeyExists := firstEntry[0]["_type"].(string)
+	if typeKeyExists && eType == "playlist" {
+		var playlists []YouTubePlaylist
+		if err := json.Unmarshal(tmp.Entries, &playlists); err != nil {
+			return err
+		}
+
+		var videosPlaylist YouTubePlaylist
+		for _, playlist := range playlists {
+			if strings.Contains(strings.ToLower(playlist.Title), "videos") {
+				videosPlaylist = playlist
+			}
+		}
+		ytc.Videos = videosPlaylist.Videos
+	} else {
+		var videos []YouTubeVideo
+		if err := json.Unmarshal(tmp.Entries, &videos); err != nil {
+			return err
+		}
+		ytc.Videos = videos
+	}
+
+	ytc.Author = tmp.Author
+	ytc.Description = tmp.Description
+	ytc.Id = tmp.Id
+	ytc.Logos = tmp.Logos
+	ytc.Title = tmp.Title
+	ytc.Url = tmp.Url
+	return nil
 }
 
 type YouTubeChannelLogo struct {
