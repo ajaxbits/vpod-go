@@ -93,19 +93,13 @@ func feedHandler(database *sql.DB) http.Handler {
 func genFeedHandler(database *sql.DB, cCtx *cli.Context) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		ytPathPart := strings.TrimPrefix(r.URL.Path, "/gen/")
-		feed := genFeed(ytPathPart, database, cCtx)
-
-		w.Header().Set("Content-Type", "application/xml")
-		err := feed.Encode(w)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		feedUrl := genFeed(ytPathPart, database, cCtx)
+		w.Write([]byte(feedUrl))
 	}
 	return http.HandlerFunc(fn)
 }
 
-func genFeed(ytPathPart string, database *sql.DB, cCtx *cli.Context) podcast.Podcast {
-
+func genFeed(ytPathPart string, database *sql.DB, cCtx *cli.Context) string {
 	base_url := cCtx.String("base-url")
 
 	youtubeUrl := fmt.Sprintf("https://www.youtube.com/%s", ytPathPart)
@@ -178,7 +172,9 @@ func genFeed(ytPathPart string, database *sql.DB, cCtx *cli.Context) podcast.Pod
 	podcastFeed.Encode(feedXML)
 	feedXMLStr := feedXML.String()
 	db.CreateFeed(context.Background(), database, &c.Id, &c.Title, &c.Description, &c.Url, &feedXMLStr)
-	return podcastFeed
+
+	finalFeedUrl := fmt.Sprintf("%s/feed/%s", base_url, c.Id)
+	return finalFeedUrl
 }
 
 func getFeedImage(c *YouTubeChannel) string {
