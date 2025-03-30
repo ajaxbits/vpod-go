@@ -22,10 +22,17 @@ func (u *UnixTime) UnmarshalJSON(b []byte) error {
 type YouTubeChannel struct {
 	Author      string `json:"uploader"`
 	Description string
-	Id          string            `json:"channel_id"`
-	Playlists   []YouTubePlaylist `json:"entries"`
+	Id          string               `json:"channel_id"`
+	Logos       []YouTubeChannelLogo `json:"thumbnails"`
+	Playlists   []YouTubePlaylist    `json:"entries"`
 	Title       string
 	Url         string `json:"channel_url"`
+}
+
+type YouTubeChannelLogo struct {
+	Id         string
+	Preference int `json:"preference,omitempty"`
+	Url        string
 }
 
 type YouTubePlaylist struct {

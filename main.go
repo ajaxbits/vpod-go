@@ -107,8 +107,9 @@ func genFeed(ytPathPart string, cCtx *cli.Context) podcast.Podcast {
 	now := time.Now()
 	db.CreateFeed(context.Background(), database, &c.Title, &c.Id, &c.Description, &c.Url)
 	podcastFeed := podcast.New(c.Title, c.Url, c.Description, &now, &now)
-	podcastFeed.AddSummary(c.Description)
 	podcastFeed.AddAuthor(c.Author, "")
+	podcastFeed.AddImage(getFeedImage(&c))
+	podcastFeed.AddSummary(c.Description)
 	podcastFeed.IExplicit = "no"
 	podcastFeed.IBlock = "Yes"
 	podcastFeed.Generator = "vpod"
@@ -155,4 +156,14 @@ func genFeed(ytPathPart string, cCtx *cli.Context) podcast.Podcast {
 	}
 
 	return podcastFeed
+}
+
+func getFeedImage(c *YouTubeChannel) string {
+	for _, logo := range c.Logos {
+		if logo.Preference == 1 {
+			return logo.Url
+		}
+	}
+	return "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Minecraft_missing_texture_block.svg/1024px-Minecraft_missing_texture_block.svg.png"
+
 }
