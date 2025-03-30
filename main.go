@@ -109,7 +109,7 @@ func genFeed(ytPathPart string, database *sql.DB, cCtx *cli.Context) podcast.Pod
 	base_url := cCtx.String("base-url")
 
 	youtubeUrl := fmt.Sprintf("https://www.youtube.com/%s", ytPathPart)
-	cmd := exec.Command("yt-dlp", "-J", youtubeUrl)
+	cmd := exec.Command("yt-dlp", "-J", "--playlist-items=:20", youtubeUrl)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 
