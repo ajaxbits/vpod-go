@@ -1,2 +1,2 @@
 run:
-    go run .
+    rm ./*.db && go run .

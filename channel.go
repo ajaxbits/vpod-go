@@ -24,7 +24,6 @@ type YouTubeChannel struct {
 	Id          string            `json:"channel_id"`
 	Playlists   []YouTubePlaylist `json:"entries"`
 	Title       string
-	LastUpdated UnixTime `json:"epoch"`
 	Url         string   `json:"channel_url"`
 }
 
@@ -43,6 +42,8 @@ type YouTubeVideo struct {
 	ChannelTitle     string `json:"channel"`
 	ChannelUrl       string `json:"channel_url"`
 	Description      string
+	Duration         int
+	DurationString   string `json:"duration_string"`
 	Formats          []YouTubeVideoFormat
 	Id               string
 	PlaylistId       string   `json:"playlist_id"`
@@ -53,13 +54,21 @@ type YouTubeVideo struct {
 }
 
 type YouTubeVideoFormat struct {
-	AudioExt    string `json:"audio_ext"`
-	Description string `json:"format"`
-	Drm         bool   `json:"has_drm"`
-	Ext         string
-	Id          string `json:"format_id"`
-	Protocol    string
-	Resolution  string
-	Url         string
-	VideoExt    string `json:"video_ext"`
+	Abr           float32
+	AudioChannels int    `json:"audio_channels"`
+	AudioCodec    string `json:"acodec"`
+	AudioExt      string `json:"audio_ext"`
+	Container     string
+	Description   string `json:"format"`
+	Drm           bool   `json:"has_drm"`
+	Ext           string
+
+	// no idea what the difference between these two is
+	Filesize       int
+	FilesizeApprox int `json:"filesize_approx"`
+
+	Id         string `json:"format_id"`
+	Protocol   string
+	Resolution string
+	Url        string
 }

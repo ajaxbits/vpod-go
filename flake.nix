@@ -48,6 +48,8 @@
               gotools
               just
               pkgsLatest.yt-dlp
+              sqlite
+              visidata
             ];
           };
         }
