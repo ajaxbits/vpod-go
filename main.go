@@ -8,6 +8,7 @@ import (
 	"github.com/eduncan911/podcast"
 	"github.com/urfave/cli/v2"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -15,6 +16,11 @@ import (
 
 	"vpod/db"
 )
+
+type CliFlags struct {
+	BaseUrl string
+	Port    int64
+}
 
 func main() {
 	app := &cli.App{
@@ -25,10 +31,20 @@ func main() {
 				Name:  "base-url",
 				Usage: "The base url for the podcast",
 			},
+			&cli.StringFlag{
+				Name:  "host",
+				Usage: "The addres to run the web server on",
+				Value: "0.0.0.0",
+			},
+			&cli.Uint64Flag{
+				Name:  "port",
+				Usage: "The port to run the web server on.",
+				Value: 8080,
+			},
 		},
 		Action: func(cCtx *cli.Context) error {
-			genFeed(cCtx.String("base-url"))
-			return nil
+			err := serve(cCtx)
+			return err
 		},
 	}
 
@@ -37,14 +53,41 @@ func main() {
 	}
 }
 
-func genFeed(base_url string) {
+func serve(cCtx *cli.Context) error {
+	address := fmt.Sprintf("%s:%d", cCtx.String("host"), cCtx.Uint64("port"))
+
+	mux := http.NewServeMux()
+	fh := feedHandler(cCtx)
+	mux.Handle("/feed/", fh)
+	err := http.ListenAndServe(address, mux)
+	return err
+}
+
+func feedHandler(cCtx *cli.Context) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		ytPathPart := strings.TrimPrefix(r.URL.Path, "/feed/")
+		feed := genFeed(ytPathPart, cCtx)
+
+		w.Header().Set("Content-Type", "application/xml")
+		err := feed.Encode(w)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}
+	return http.HandlerFunc(fn)
+}
+
+func genFeed(ytPathPart string, cCtx *cli.Context) podcast.Podcast {
 	database, err := db.Initialize()
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer database.Close()
 
-	cmd := exec.Command("yt-dlp", "-J", "https://www.youtube.com/@Monoanalysis")
+	base_url := cCtx.String("base-url")
+
+	youtubeUrl := fmt.Sprintf("https://www.youtube.com/%s", ytPathPart)
+	cmd := exec.Command("yt-dlp", "-J", youtubeUrl)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 
@@ -61,12 +104,12 @@ func genFeed(base_url string) {
 
 	now := time.Now()
 	db.CreateFeed(context.Background(), database, &c.Title, &c.Id, &c.Description, &c.Url)
-	podcast_feed := podcast.New(c.Title, c.Url, c.Description, &now, &now)
-	podcast_feed.AddSummary(c.Description)
-	podcast_feed.AddAuthor(c.Author, "")
-	podcast_feed.IExplicit = "no"
-	podcast_feed.IBlock = "Yes"
-	podcast_feed.Generator = "vpod"
+	podcastFeed := podcast.New(c.Title, c.Url, c.Description, &now, &now)
+	podcastFeed.AddSummary(c.Description)
+	podcastFeed.AddAuthor(c.Author, "")
+	podcastFeed.IExplicit = "no"
+	podcastFeed.IBlock = "Yes"
+	podcastFeed.Generator = "vpod"
 
 	for i := 0; i < len(c.Playlists[0].Videos); i++ {
 		v := c.Playlists[0].Videos[i]
@@ -104,10 +147,10 @@ func genFeed(base_url string) {
 		item.AddImage(v.Thumbnail)
 		item.AddEnclosure(enclosureUrl, podcast.M4A, enclosureFilesize)
 
-		if _, err := podcast_feed.AddItem(item); err != nil {
+		if _, err := podcastFeed.AddItem(item); err != nil {
 			log.Fatal(err)
 		}
 	}
 
-	podcast_feed.Encode(os.Stdout)
+	return podcastFeed
 }
