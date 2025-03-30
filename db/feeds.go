@@ -38,3 +38,19 @@ func GetFeed(ctx context.Context, db *sql.DB, channel_id *string) (*string, erro
 		return &xml, nil
 	}
 }
+
+func UpdateFeed(ctx context.Context, db *sql.DB, channelId *string, title *string, desc *string, link *string, xml *string) error {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	query := `UPDATE Feeds SET (description, title, updated_at, link, xml) VALUES (?, ?, CURRENT_TIMESTAMP, ?, ?) WHERE id = ?`
+	_, err = tx.ExecContext(ctx, query, desc, title, link, xml, channelId)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
