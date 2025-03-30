@@ -37,11 +37,11 @@ func createTables(db *sql.DB) error {
 		`CREATE TABLE IF NOT EXISTS Feeds (
             id BLOB PRIMARY KEY NOT NULL UNIQUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            channel_id TEXT NOT NULL,
             description TEXT,
             title TEXT NOT NULL,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            link TEXT NOT NULL
+            link TEXT NOT NULL,
+            xml TEXT NOT NULL
         );`,
 		`CREATE TABLE IF NOT EXISTS Episodes (
             id BLOB PRIMARY KEY NOT NULL UNIQUE,

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"github.com/eduncan911/podcast"
@@ -54,21 +55,45 @@ func main() {
 }
 
 func serve(cCtx *cli.Context) error {
+	database, err := db.Initialize()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer database.Close()
+
 	address := fmt.Sprintf("%s:%d", cCtx.String("host"), cCtx.Uint64("port"))
 
 	mux := http.NewServeMux()
 	ah := audioHandler()
-	fh := feedHandler(cCtx)
+	fh := feedHandler(database)
+	gh := genFeedHandler(database, cCtx)
 	mux.Handle("/audio/", ah)
 	mux.Handle("/feed/", fh)
-	err := http.ListenAndServe(address, mux)
+	mux.Handle("/gen/", gh)
+	err = http.ListenAndServe(address, mux)
 	return err
 }
 
-func feedHandler(cCtx *cli.Context) http.Handler {
+func feedHandler(database *sql.DB) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		ytPathPart := strings.TrimPrefix(r.URL.Path, "/feed/")
-		feed := genFeed(ytPathPart, cCtx)
+		feedId := strings.TrimPrefix(r.URL.Path, "/feed/")
+		xml, err := db.GetFeed(context.Background(), database, &feedId)
+		if err == sql.ErrNoRows {
+			http.Error(w, "Feed not found, please generate it.", http.StatusNotFound)
+		} else if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		} else {
+			w.Header().Set("Content-Type", "application/xml")
+			w.Write([]byte(*xml))
+		}
+	}
+	return http.HandlerFunc(fn)
+}
+
+func genFeedHandler(database *sql.DB, cCtx *cli.Context) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		ytPathPart := strings.TrimPrefix(r.URL.Path, "/gen/")
+		feed := genFeed(ytPathPart, database, cCtx)
 
 		w.Header().Set("Content-Type", "application/xml")
 		err := feed.Encode(w)
@@ -79,12 +104,7 @@ func feedHandler(cCtx *cli.Context) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func genFeed(ytPathPart string, cCtx *cli.Context) podcast.Podcast {
-	database, err := db.Initialize()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer database.Close()
+func genFeed(ytPathPart string, database *sql.DB, cCtx *cli.Context) podcast.Podcast {
 
 	base_url := cCtx.String("base-url")
 
@@ -93,7 +113,7 @@ func genFeed(ytPathPart string, cCtx *cli.Context) podcast.Podcast {
 	var out bytes.Buffer
 	cmd.Stdout = &out
 
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -105,7 +125,6 @@ func genFeed(ytPathPart string, cCtx *cli.Context) podcast.Podcast {
 	}
 
 	now := time.Now()
-	db.CreateFeed(context.Background(), database, &c.Title, &c.Id, &c.Description, &c.Url)
 	podcastFeed := podcast.New(c.Title, c.Url, c.Description, &now, &now)
 	podcastFeed.AddAuthor(c.Author, "")
 	podcastFeed.AddImage(getFeedImage(&c))
@@ -155,6 +174,10 @@ func genFeed(ytPathPart string, cCtx *cli.Context) podcast.Podcast {
 		}
 	}
 
+	feedXML := new(bytes.Buffer)
+	podcastFeed.Encode(feedXML)
+	feedXMLStr := feedXML.String()
+	db.CreateFeed(context.Background(), database, &c.Id, &c.Title, &c.Description, &c.Url, &feedXMLStr)
 	return podcastFeed
 }
 

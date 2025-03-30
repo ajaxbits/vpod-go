@@ -1,7 +1,7 @@
 result
 .direnv
 .envrc
-*.db
+*.db*
 *.m4a
 
 ### Go ###
