@@ -27,7 +27,7 @@ func main() {
 			},
 		},
 		Action: func(cCtx *cli.Context) error {
-			logic(cCtx.String("base-url"))
+			genFeed(cCtx.String("base-url"))
 			return nil
 		},
 	}
@@ -37,7 +37,7 @@ func main() {
 	}
 }
 
-func logic(base_url string) {
+func genFeed(base_url string) {
 	database, err := db.Initialize()
 	if err != nil {
 		log.Fatal(err)
@@ -71,17 +71,9 @@ func logic(base_url string) {
 	for i := 0; i < len(c.Playlists[0].Videos); i++ {
 		v := c.Playlists[0].Videos[i]
 
-		item := podcast.Item{
-			Title:       v.Title,
-			Description: v.Description,
-			Link:        v.Url,
-		}
-		d := v.ReleaseTimestamp.Time
-		item.AddPubDate(&d)
-		item.AddDuration(v.Duration)
-		item.AddImage(v.Thumbnail)
-
 		acceptable_file_found := false
+		var enclosureUrl string
+		var enclosureFilesize int64
 		for i := 0; i < len(v.Formats); i++ {
 			f := v.Formats[i]
 			audio_only := f.Resolution == "audio only"
@@ -91,21 +83,30 @@ func logic(base_url string) {
 
 			if audio_only && correct_ext && no_drm && no_dynamic_range_compression {
 				acceptable_file_found = true
-				enclosureUrl := fmt.Sprintf("%s/%s/%s", base_url, v.Id, f.Id)
-				item.AddEnclosure(enclosureUrl, podcast.M4A, f.Filesize)
+				enclosureUrl = fmt.Sprintf("%s/%s/%s", base_url, v.Id, f.Id)
+				enclosureFilesize = f.Filesize
 				break
 			}
 		}
-
 		if !acceptable_file_found {
 			fmt.Println("No acceptable file found, moving on.")
 			continue
 		}
 
+		item := podcast.Item{
+			Title:       v.Title,
+			Description: v.Description,
+			Link:        v.Url,
+		}
+		d := v.ReleaseTimestamp.Time
+		item.AddPubDate(&d)
+		item.AddDuration(v.Duration)
+		item.AddImage(v.Thumbnail)
+		item.AddEnclosure(enclosureUrl, podcast.M4A, enclosureFilesize)
+
 		if _, err := podcast_feed.AddItem(item); err != nil {
 			log.Fatal(err)
 		}
-
 	}
 
 	podcast_feed.Encode(os.Stdout)
