@@ -6,14 +6,38 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/eduncan911/podcast"
+	"github.com/urfave/cli/v2"
 	"log"
+	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"vpod/db"
 )
 
 func main() {
+	app := &cli.App{
+		Name:  "vpod",
+		Usage: "beware the pipeline",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:  "base-url",
+				Usage: "The base url for the podcast",
+			},
+		},
+		Action: func(cCtx *cli.Context) error {
+			logic(cCtx.String("base-url"))
+			return nil
+		},
+	}
+
+	if err := app.Run(os.Args); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func logic(base_url string) {
 	database, err := db.Initialize()
 	if err != nil {
 		log.Fatal(err)
@@ -39,7 +63,7 @@ func main() {
 	db.CreateFeed(context.Background(), database, &c.Title, &c.Id, &c.Description, &c.Url)
 	podcast_feed := podcast.New(c.Title, c.Url, c.Description, &now, &now)
 	podcast_feed.AddSummary(c.Description)
-	podcast_feed.AddAuthor(c.Author, "none-available@none.com")
+	podcast_feed.AddAuthor(c.Author, "")
 	podcast_feed.IExplicit = "no"
 	podcast_feed.IBlock = "Yes"
 	podcast_feed.Generator = "vpod"
@@ -63,10 +87,12 @@ func main() {
 			audio_only := f.Resolution == "audio only"
 			correct_ext := f.AudioExt == "m4a"
 			no_drm := !f.Drm
+			no_dynamic_range_compression := !strings.Contains(f.Id, "drc")
 
-			if audio_only && correct_ext && no_drm {
+			if audio_only && correct_ext && no_drm && no_dynamic_range_compression {
 				acceptable_file_found = true
-				item.AddEnclosure(f.Url, podcast.M4A, f.Filesize) // TODO: set proper url here
+				enclosureUrl := fmt.Sprintf("%s/%s/%s", base_url, v.Id, f.Id)
+				item.AddEnclosure(enclosureUrl, podcast.M4A, f.Filesize)
 				break
 			}
 		}
@@ -82,7 +108,5 @@ func main() {
 
 	}
 
-	buf := new(bytes.Buffer)
-	podcast_feed.Encode(buf)
-	fmt.Println(buf.String())
+	podcast_feed.Encode(os.Stdout)
 }
