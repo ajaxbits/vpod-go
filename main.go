@@ -57,7 +57,9 @@ func serve(cCtx *cli.Context) error {
 	address := fmt.Sprintf("%s:%d", cCtx.String("host"), cCtx.Uint64("port"))
 
 	mux := http.NewServeMux()
+	ah := audioHandler()
 	fh := feedHandler(cCtx)
+	mux.Handle("/audio/", ah)
 	mux.Handle("/feed/", fh)
 	err := http.ListenAndServe(address, mux)
 	return err
@@ -126,7 +128,7 @@ func genFeed(ytPathPart string, cCtx *cli.Context) podcast.Podcast {
 
 			if audio_only && correct_ext && no_drm && no_dynamic_range_compression {
 				acceptable_file_found = true
-				enclosureUrl = fmt.Sprintf("%s/%s/%s", base_url, v.Id, f.Id)
+				enclosureUrl = fmt.Sprintf("%s/audio/%s/%s", base_url, v.Id, f.Id)
 				enclosureFilesize = f.Filesize
 				break
 			}
