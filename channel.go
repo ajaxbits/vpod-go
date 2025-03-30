@@ -20,6 +20,7 @@ func (u *UnixTime) UnmarshalJSON(b []byte) error {
 }
 
 type YouTubeChannel struct {
+	Author      string `json:"uploader"`
 	Description string
 	Id          string            `json:"channel_id"`
 	Playlists   []YouTubePlaylist `json:"entries"`
@@ -42,7 +43,7 @@ type YouTubeVideo struct {
 	ChannelTitle     string `json:"channel"`
 	ChannelUrl       string `json:"channel_url"`
 	Description      string
-	Duration         int
+	Duration         int64
 	DurationString   string `json:"duration_string"`
 	Formats          []YouTubeVideoFormat
 	Id               string

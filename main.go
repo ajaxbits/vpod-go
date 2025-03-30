@@ -39,7 +39,10 @@ func main() {
 	db.CreateFeed(context.Background(), database, &c.Title, &c.Id, &c.Description, &c.Url)
 	podcast_feed := podcast.New(c.Title, c.Url, c.Description, &now, &now)
 	podcast_feed.AddSummary(c.Description)
+	podcast_feed.AddAuthor(c.Author, "none-available@none.com")
 	podcast_feed.IExplicit = "no"
+	podcast_feed.IBlock = "Yes"
+	podcast_feed.Generator = "vpod"
 
 	for i := 0; i < len(c.Playlists[0].Videos); i++ {
 		v := c.Playlists[0].Videos[i]
@@ -51,6 +54,8 @@ func main() {
 		}
 		d := v.ReleaseTimestamp.Time
 		item.AddPubDate(&d)
+		item.AddDuration(v.Duration)
+		item.AddImage(v.Thumbnail)
 
 		acceptable_file_found := false
 		for i := 0; i < len(v.Formats); i++ {
@@ -75,7 +80,9 @@ func main() {
 			log.Fatal(err)
 		}
 
-		fmt.Println(item.Title)
-		fmt.Println(item.Enclosure)
 	}
+
+	buf := new(bytes.Buffer)
+	podcast_feed.Encode(buf)
+	fmt.Println(buf.String())
 }
