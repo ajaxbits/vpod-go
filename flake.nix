@@ -6,13 +6,15 @@
 
   outputs =
     {
-      nixpkgs,
       latest,
+      nixpkgs,
+      self,
       ...
     }:
     let
-      # lastModifiedDate = self.lastModifiedDate or self.lastModified or "19700101";
-      # version = builtins.substring 0 8 lastModifiedDate;
+      name = "vpod";
+      lastModifiedDate = self.lastModifiedDate or self.lastModified or "19700101";
+      version = builtins.substring 0 8 lastModifiedDate;
 
       # System types to support.
       supportedSystems = [
@@ -28,11 +30,41 @@
       # Nixpkgs instantiated for supported system types.
       nixpkgsFor = forAllSystems (system: import nixpkgs { inherit system; });
       latestFor = forAllSystems (system: import latest { inherit system; });
-
     in
     {
+      packages = forAllSystems (
+        system:
+        let
+          inherit (pkgs) lib;
+          pkgs = nixpkgsFor.${system};
+          pkgsLatest = latestFor.${system};
+        in
+        {
+          default = self.packages.${system}.${name};
 
-      # Add dependencies that are only needed for development
+          ${name} = pkgs.buildGoModule {
+            inherit version;
+            pname = name;
+            src = ./.;
+
+            vendorHash = "sha256-38AxdH1xuUdLw8TWMlS6N7CIW393W5UyARbCzNVDRDI=";
+
+            nativeBuildInputs = [ pkgs.makeWrapper ];
+            postFixup = ''
+              wrapProgram $out/bin/${name} \
+                --set PATH ${lib.makeBinPath [ pkgsLatest.yt-dlp ]}
+            '';
+
+            meta = with lib; {
+              description = "Beware the pipeline.";
+              homepage = "https://github.com/ajaxbits/vpod-go";
+              license = licenses.unlicense;
+              maintainers = with maintainers; [ ajaxbits ];
+            };
+          };
+        }
+      );
+
       devShells = forAllSystems (
         system:
         let
