@@ -1,13 +1,13 @@
 {
+  buildGoModule,
   lib,
+  makeWrapper,
   name,
-  pkgs,
   runtimeDeps,
   version,
   ...
 }:
 let
-  inherit (pkgs) buildGoModule makeWrapper;
   fs = lib.fileset;
   src = fs.toSource {
     root = ../.;
@@ -30,6 +30,7 @@ buildGoModule {
     description = "Beware the pipeline.";
     homepage = "https://github.com/ajaxbits/vpod-go";
     license = licenses.unlicense;
+    mainProgram = name;
     maintainers = with maintainers; [ ajaxbits ];
   };
 }

@@ -47,13 +47,17 @@
             in
             {
               ${name} = pkgs.callPackage ./nix/package.nix {
-                inherit (pkgs) lib;
+                inherit (pkgs) buildGoModule makeWrapper lib;
                 inherit
                   name
                   pkgs
                   runtimeDeps
                   version
                   ;
+              };
+              oci-image = pkgs.callPackage ./nix/oci-image.nix {
+                package = self'.packages.${name};
+                inherit (pkgs) dockerTools lib;
               };
               default = self'.packages.${name};
             };
