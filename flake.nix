@@ -50,6 +50,7 @@
               pkgsLatest.yt-dlp
               sqlite
               visidata
+              yq
             ];
           };
         }

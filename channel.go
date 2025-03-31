@@ -105,7 +105,7 @@ type YouTubeVideo struct {
 	Formats          []YouTubeVideoFormat
 	Id               string
 	PlaylistId       string   `json:"playlist_id"`
-	ReleaseTimestamp UnixTime `json:"release_timestamp"` // TODO: check that this is actually a unixtime lol
+	ReleaseTimestamp UnixTime `json:"timestamp"`
 	Thumbnail        string
 	Title            string
 	Url              string `json:"webpage_url"`
