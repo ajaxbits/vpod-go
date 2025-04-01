@@ -5,10 +5,12 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/eduncan911/podcast"
 	"github.com/urfave/cli/v2"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/exec"
@@ -64,11 +66,13 @@ func main() {
 }
 
 func serve(cCtx *cli.Context) error {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	database, err := db.Initialize()
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer database.Close()
+	logger.Debug("DB initalized")
 
 	address := fmt.Sprintf("%s:%d", cCtx.String("host"), cCtx.Uint64("port"))
 
@@ -79,19 +83,29 @@ func serve(cCtx *cli.Context) error {
 	mux.Handle("/audio/", ah)
 	mux.Handle("/feed/", fh)
 	mux.Handle("/gen/", gh)
+
+	logger.Info("starting server", slog.String("address", address))
 	err = http.ListenAndServe(address, mux)
 	return err
 }
 
 func feedHandler(database *sql.DB) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
+		logger := slog.New(slog.NewTextHandler(os.Stdout, nil)).With(slog.String("request_path", r.URL.Path))
+
 		feedId := strings.TrimPrefix(r.URL.Path, "/feed/")
+		logger = logger.With(slog.String("feed_id", feedId))
+
+		logger.Info("Getting feed from DB")
 		xml, err := db.GetFeed(context.Background(), database, &feedId)
 		if err == sql.ErrNoRows {
+			logger.Error("Feed not found in Database")
 			http.Error(w, "Feed not found, please generate it.", http.StatusNotFound)
 		} else if err != nil {
+			logger.With(slog.String("err", fmt.Sprintf("%v", err))).Error("Something went wrong when fetching feed.")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		} else {
+			logger.Debug("Feed found in DB")
 			w.Header().Set("Content-Type", "application/xml")
 			w.Write([]byte(*xml))
 		}
@@ -101,33 +115,50 @@ func feedHandler(database *sql.DB) http.Handler {
 
 func genFeedHandler(database *sql.DB, cCtx *cli.Context) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
+		logger := slog.New(slog.NewTextHandler(os.Stdout, nil)).With(slog.String("request_path", r.URL.Path))
+
 		ytPathPart := strings.TrimPrefix(r.URL.Path, "/gen/")
-		feedUrl, err := genFeed(ytPathPart, database, cCtx)
+
+		logger.Info("generating feed")
+		feedUrl, err := genFeed(ytPathPart, database, logger, cCtx)
 		if err != nil {
+			logger.With(slog.String("err", fmt.Sprintf("%v", err))).Error("Something went wrong when generating feed")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+		} else {
+			logger.Debug("Feed successfully generated")
+			w.Write([]byte(*feedUrl))
 		}
-		w.Write([]byte(*feedUrl))
 	}
 	return http.HandlerFunc(fn)
 }
 
-func genFeed(ytPathPart string, database *sql.DB, cCtx *cli.Context) (*string, error) {
+func genFeed(ytPathPart string, database *sql.DB, logger *slog.Logger, cCtx *cli.Context) (*string, error) {
 	base_url := cCtx.String("base-url")
 
 	youtubeUrl := fmt.Sprintf("https://www.youtube.com/%s", ytPathPart)
+	logger = logger.With(slog.String("channel_url", youtubeUrl))
+
 	cmd := exec.Command("yt-dlp", "-J", "--playlist-items=:20", youtubeUrl)
-	var out bytes.Buffer
-	cmd.Stdout = &out
+	var outb, errb bytes.Buffer
+	cmd.Stdout = &outb
+	cmd.Stderr = &errb
+	logger = logger.With(slog.String("yt_dlp_command", fmt.Sprintf("%v", cmd.Args)))
 
 	err := cmd.Run()
 	if err != nil {
+		var exitError *exec.ExitError
+		if errors.As(err, &exitError) {
+			logger = logger.With(slog.String("stderr", errb.String()))
+		}
+		logger.Error("failed to get channel information")
 		return nil, err
 	}
 
 	var c YouTubeChannel
-	err = json.Unmarshal(out.Bytes(), &c)
+	err = json.Unmarshal(outb.Bytes(), &c)
 	if err != nil {
-		log.Fatal(err)
+		logger.Error("failed to unmarshal yt-dlp output into YouTubeChannel")
+		return nil, err
 	}
 
 	now := time.Now()
