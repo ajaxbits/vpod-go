@@ -9,16 +9,23 @@
 }:
 let
   fs = lib.fileset;
+  gitFiles = fs.gitTracked ../.;
+  excludes = fs.unions [
+    ../justfile
+    ../nix
+    ../vector.yaml
+  ];
+  fileset = fs.difference gitFiles excludes;
   src = fs.toSource {
+    inherit fileset;
     root = ../.;
-    fileset = fs.gitTracked ../.;
   };
 in
 buildGoModule {
   inherit src version;
   pname = name;
 
-  vendorHash = "sha256-38AxdH1xuUdLw8TWMlS6N7CIW393W5UyARbCzNVDRDI=";
+  vendorHash = "sha256-tV/8P5e5Jfr4QSnse4qvTzj2f1U6WDDLtUI5YsA1RSA=";
 
   nativeBuildInputs = [ makeWrapper ];
   postFixup = ''
