@@ -12,6 +12,7 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"strings"
@@ -143,24 +144,27 @@ func feedHandler(database *sql.DB) http.Handler {
 
 func genFeedHandler(database *sql.DB, cCtx *cli.Context) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		logger := r.Context().Value("logger").(*slog.Logger)
+		rCtx := r.Context()
+		rCtx = context.WithValue(rCtx, "url", r.URL)
+		logger := rCtx.Value("logger").(*slog.Logger)
 
 		ytPathPart := strings.TrimPrefix(r.URL.Path, "/gen/")
 
 		logger.Info("generating feed")
-		feedUrl, err := genFeed(ytPathPart, database, logger, r.Context(), cCtx)
+		feedUrl, err := genFeed(ytPathPart, database, logger, rCtx, cCtx)
 		if err != nil {
 			logger.With(slog.String("err", err.Error())).Error("Something went wrong when generating feed")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		} else {
 			logger.Debug("Feed successfully generated")
-			w.Write([]byte(*feedUrl))
+			// w.Write([]byte(*feedUrl))
+			w.Write([]byte(feedUrl.String()))
 		}
 	}
 	return http.HandlerFunc(fn)
 }
 
-func genFeed(ytPathPart string, database *sql.DB, logger *slog.Logger, rCtx context.Context, cCtx *cli.Context) (*string, error) {
+func genFeed(ytPathPart string, database *sql.DB, logger *slog.Logger, rCtx context.Context, cCtx *cli.Context) (*url.URL, error) {
 	base_url := cCtx.String("base-url")
 
 	youtubeUrl := fmt.Sprintf("https://www.youtube.com/%s", ytPathPart)
@@ -241,8 +245,30 @@ func genFeed(ytPathPart string, database *sql.DB, logger *slog.Logger, rCtx cont
 	feedXMLStr := feedXML.String()
 	db.CreateFeed(rCtx, database, &c.Id, &c.Title, &c.Description, &c.Url, &feedXMLStr)
 
-	finalFeedUrl := fmt.Sprintf("%s/feed/%s", base_url, c.Id)
-	return &finalFeedUrl, nil
+	feedURL, err := url.Parse(base_url)
+	if err != nil {
+		logger.Error("failed to parse feed url during construction")
+		return nil, err
+	}
+	feedURL = feedURL.JoinPath("feed", c.Id)
+
+	var finalURL *url.URL
+	format := rCtx.Value("url").(*url.URL).Query().Get("format")
+	switch format {
+	case "overcast":
+		queryParams := url.Values{"url": {feedURL.String()}}
+		overcastURL := &url.URL{
+			Scheme:   "overcast",
+			Host:     "x-callback-url",
+			Path:     "/add",
+			RawQuery: queryParams.Encode(), // escapes "url" key automatically
+		}
+		finalURL = overcastURL
+	default:
+		finalURL = feedURL
+	}
+
+	return finalURL, nil
 }
 
 func getFeedImage(c *YouTubeChannel) string {
