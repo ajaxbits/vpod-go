@@ -1,8 +1,12 @@
-run:
-    rm ./*.db && go run .
-
 build:
     nom build .#
+
+run: build
+    result/bin/vpod
+
+run-loki endpoint: build
+    result/bin/vpod | LOKI={{endpoint}} nix develop --command vector --config=vector.yaml
+
 
 build-image:
     nom build .#oci-image

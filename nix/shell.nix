@@ -12,6 +12,7 @@ mkShell {
       gotools
       just
       sqlite
+      vector
       visidata
       yq
     ]);
