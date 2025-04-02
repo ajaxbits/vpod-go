@@ -41,6 +41,12 @@ func main() {
 				Value:   "0.0.0.0",
 				EnvVars: []string{"HOST"},
 			},
+			&cli.StringFlag{
+				Name:    "log-level",
+				Usage:   "Log level for the program",
+				Value:   "INFO",
+				EnvVars: []string{"LOG_LEVEL"},
+			},
 			&cli.Uint64Flag{
 				Name:    "port",
 				Usage:   "The port to run the web server on.",
@@ -66,7 +72,25 @@ func main() {
 }
 
 func serve(cCtx *cli.Context) error {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	var lvl = new(slog.LevelVar)
+	switch cCtx.String("log-level") {
+	case "DEBUG":
+		lvl.Set(slog.LevelDebug)
+	case "WARN":
+		lvl.Set(slog.LevelWarn)
+	case "ERROR":
+		lvl.Set(slog.LevelError)
+	default:
+		lvl.Set(slog.LevelInfo)
+	}
+
+	logger := slog.New(
+		slog.NewJSONHandler(
+			os.Stdout,
+			&slog.HandlerOptions{Level: lvl},
+		),
+	)
+
 	database, err := db.Initialize()
 	if err != nil {
 		log.Fatal(err)
@@ -74,30 +98,34 @@ func serve(cCtx *cli.Context) error {
 	defer database.Close()
 	logger.Debug("DB initalized")
 
-	address := fmt.Sprintf("%s:%d", cCtx.String("host"), cCtx.Uint64("port"))
-
 	mux := http.NewServeMux()
-	ah := audioHandler()
-	fh := feedHandler(database)
-	gh := genFeedHandler(database, cCtx)
-	mux.Handle("/audio/", ah)
-	mux.Handle("/feed/", fh)
-	mux.Handle("/gen/", gh)
+	mux.Handle("/audio/", audioHandler())
+	mux.Handle("/feed/", feedHandler(database))
+	mux.Handle("/gen/", genFeedHandler(database, cCtx))
 
+	address := fmt.Sprintf("%s:%d", cCtx.String("host"), cCtx.Uint64("port"))
+	handler := loggingWrapper(mux, logger)
+	srv := &http.Server{
+		Addr:         address,
+		ReadTimeout:  300 * time.Second, // for long audio returns
+		WriteTimeout: 120 * time.Second,
+		IdleTimeout:  120 * time.Second,
+		Handler:      handler,
+	}
 	logger.Info("starting server", slog.String("address", address))
-	err = http.ListenAndServe(address, mux)
-	return err
+	return srv.ListenAndServe()
 }
 
 func feedHandler(database *sql.DB) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		logger := slog.New(slog.NewTextHandler(os.Stdout, nil)).With(slog.String("request_path", r.URL.Path))
+		ctx := r.Context()
+		logger := ctx.Value("logger").(*slog.Logger)
 
 		feedId := strings.TrimPrefix(r.URL.Path, "/feed/")
 		logger = logger.With(slog.String("feed_id", feedId))
 
 		logger.Info("Getting feed from DB")
-		xml, err := db.GetFeed(context.Background(), database, &feedId)
+		xml, err := db.GetFeed(ctx, database, &feedId)
 		if err == sql.ErrNoRows {
 			logger.Error("Feed not found in Database")
 			http.Error(w, "Feed not found, please generate it.", http.StatusNotFound)
@@ -115,14 +143,14 @@ func feedHandler(database *sql.DB) http.Handler {
 
 func genFeedHandler(database *sql.DB, cCtx *cli.Context) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		logger := slog.New(slog.NewTextHandler(os.Stdout, nil)).With(slog.String("request_path", r.URL.Path))
+		logger := r.Context().Value("logger").(*slog.Logger)
 
 		ytPathPart := strings.TrimPrefix(r.URL.Path, "/gen/")
 
 		logger.Info("generating feed")
-		feedUrl, err := genFeed(ytPathPart, database, logger, cCtx)
+		feedUrl, err := genFeed(ytPathPart, database, logger, r.Context(), cCtx)
 		if err != nil {
-			logger.With(slog.String("err", fmt.Sprintf("%v", err))).Error("Something went wrong when generating feed")
+			logger.With(slog.String("err", err.Error())).Error("Something went wrong when generating feed")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		} else {
 			logger.Debug("Feed successfully generated")
@@ -132,7 +160,7 @@ func genFeedHandler(database *sql.DB, cCtx *cli.Context) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func genFeed(ytPathPart string, database *sql.DB, logger *slog.Logger, cCtx *cli.Context) (*string, error) {
+func genFeed(ytPathPart string, database *sql.DB, logger *slog.Logger, rCtx context.Context, cCtx *cli.Context) (*string, error) {
 	base_url := cCtx.String("base-url")
 
 	youtubeUrl := fmt.Sprintf("https://www.youtube.com/%s", ytPathPart)
@@ -211,7 +239,7 @@ func genFeed(ytPathPart string, database *sql.DB, logger *slog.Logger, cCtx *cli
 	feedXML := new(bytes.Buffer)
 	podcastFeed.Encode(feedXML)
 	feedXMLStr := feedXML.String()
-	db.CreateFeed(context.Background(), database, &c.Id, &c.Title, &c.Description, &c.Url, &feedXMLStr)
+	db.CreateFeed(rCtx, database, &c.Id, &c.Title, &c.Description, &c.Url, &feedXMLStr)
 
 	finalFeedUrl := fmt.Sprintf("%s/feed/%s", base_url, c.Id)
 	return &finalFeedUrl, nil

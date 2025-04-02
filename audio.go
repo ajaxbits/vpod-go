@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"mime"
 	"net/http"
-	"os"
 	"os/exec"
 	"strings"
 )
@@ -20,7 +19,7 @@ type AudioMetadata struct {
 
 func audioHandler() http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		logger := slog.New(slog.NewTextHandler(os.Stdout, nil)).With(slog.String("request_path", r.URL.Path))
+		logger := r.Context().Value("logger").(*slog.Logger)
 		audioPart := strings.TrimPrefix(r.URL.Path, "/audio/")
 		audioParts := strings.Split(audioPart, "/") // TODO: look into SplitSeq for performance
 		m := AudioMetadata{
@@ -56,7 +55,9 @@ func getAudio(m AudioMetadata, logger *slog.Logger) (*string, error) {
 		if errors.As(err, &exitError) {
 			logger = logger.With(slog.String("stderr", errb.String()))
 		}
-		logger.Error("failed to download audio from youtube")
+		logger.Error("failed to download audio from youtube",
+			slog.String("err", err.Error()),
+		)
 		return nil, err
 	}
 
