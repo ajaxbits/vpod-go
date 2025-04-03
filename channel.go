@@ -120,6 +120,7 @@ type YouTubeVideoFormat struct {
 	Description   string `json:"format"`
 	Drm           bool   `json:"has_drm"`
 	Ext           string
+	Language      string `json:"language"`
 
 	// no idea what the difference between these two is
 	Filesize       int64

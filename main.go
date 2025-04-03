@@ -207,12 +207,13 @@ func genFeed(ytPathPart string, database *sql.DB, logger *slog.Logger, rCtx cont
 		var enclosureLengthBytes int64
 		acceptable_file_found := false
 		for _, f := range v.Formats {
+			is_english := strings.Split(f.Language, "-")[0] == "en"
 			audio_only := f.Resolution == "audio only"
 			correct_ext := f.AudioExt == "m4a"
 			no_drm := !f.Drm
 			no_dynamic_range_compression := !strings.Contains(f.Id, "drc")
 
-			if audio_only && correct_ext && no_drm && no_dynamic_range_compression {
+			if is_english && audio_only && correct_ext && no_drm && no_dynamic_range_compression {
 				acceptable_file_found = true
 				enclosureUrl = fmt.Sprintf("%s/audio/%s/%s", base_url, v.Id, f.Id)
 				enclosureLengthBytes = f.Filesize
