@@ -1,24 +1,20 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"github.com/eduncan911/podcast"
-	"github.com/urfave/cli/v2"
 	"log"
 	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
 
-	"vpod/db"
+	"github.com/urfave/cli/v2"
+
+	"vpod/data"
 )
 
 type CliFlags struct {
@@ -92,7 +88,7 @@ func serve(cCtx *cli.Context) error {
 		),
 	)
 
-	database, err := db.Initialize()
+	database, queries, err := data.Initialize(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -101,8 +97,9 @@ func serve(cCtx *cli.Context) error {
 
 	mux := http.NewServeMux()
 	mux.Handle("/audio/", audioHandler())
-	mux.Handle("/feed/", feedHandler(database))
-	mux.Handle("/gen/", genFeedHandler(database, cCtx))
+	mux.Handle("/feed/", feedHandler(queries))
+	mux.Handle("/gen/", genFeedHandler(queries, cCtx))
+	mux.Handle("/update/", updateHandler(queries, cCtx.String("base-url")))
 
 	address := fmt.Sprintf("%s:%d", cCtx.String("host"), cCtx.Uint64("port"))
 	handler := loggingWrapper(mux, logger)
@@ -117,7 +114,7 @@ func serve(cCtx *cli.Context) error {
 	return srv.ListenAndServe()
 }
 
-func feedHandler(database *sql.DB) http.Handler {
+func feedHandler(queries *data.Queries) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		logger := ctx.Value("logger").(*slog.Logger)
@@ -126,7 +123,8 @@ func feedHandler(database *sql.DB) http.Handler {
 		logger = logger.With(slog.String("feed_id", feedId))
 
 		logger.Info("Getting feed from DB")
-		xml, err := db.GetFeed(ctx, database, &feedId)
+		xml, err := queries.GetFeedXML(ctx, []byte(feedId))
+
 		if err == sql.ErrNoRows {
 			logger.Error("Feed not found in Database")
 			http.Error(w, "Feed not found, please generate it.", http.StatusNotFound)
@@ -136,158 +134,95 @@ func feedHandler(database *sql.DB) http.Handler {
 		} else {
 			logger.Debug("Feed found in DB")
 			w.Header().Set("Content-Type", "application/xml")
-			w.Write([]byte(*xml))
+			w.Write([]byte(xml))
 		}
 	}
 	return http.HandlerFunc(fn)
 }
 
-func genFeedHandler(database *sql.DB, cCtx *cli.Context) http.Handler {
+func genFeedHandler(queries *data.Queries, cCtx *cli.Context) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		rCtx := r.Context()
-		rCtx = context.WithValue(rCtx, "url", r.URL)
-		logger := rCtx.Value("logger").(*slog.Logger)
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, "url", r.URL)
+		ctx = context.WithValue(ctx, "queries", queries)
+		logger := ctx.Value("logger").(*slog.Logger)
 
-		ytPathPart := strings.TrimPrefix(r.URL.Path, "/gen/")
-
-		logger.Info("generating feed")
-		feedUrl, err := genFeed(ytPathPart, database, logger, rCtx, cCtx)
+		baseURLString := cCtx.String("base-url")
+		baseURL, err := url.Parse(baseURLString)
 		if err != nil {
 			logger.With(slog.String("err", err.Error())).Error("Something went wrong when generating feed")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
-		} else {
-			logger.Debug("Feed successfully generated")
-			w.Write([]byte(feedUrl.String()))
+			return
 		}
+		ctx = context.WithValue(ctx, "baseURL", baseURLString)
+
+		ytURL := url.URL{
+			Scheme: "https",
+			Host:   "youtube.com",
+			Path:   strings.TrimPrefix(r.URL.Path, "/gen/"),
+		}
+
+		logger.Info("generating feed")
+		p, err := fetchPodcast(ytURL, uint64(20), ctx)
+		if err != nil {
+			logger.With(slog.String("err", err.Error())).Error("Something went wrong when fetching and generating feed")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		err = upsertPodcast(*p, ctx)
+		if err != nil {
+			logger.With(slog.String("err", err.Error())).Error("Something went wrong when inserting feed into db")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		feedURL := baseURL.JoinPath("feed", p.Id)
+		logger.Debug("Feed successfully generated")
+		w.Write([]byte(feedURL.String()))
 	}
 	return http.HandlerFunc(fn)
 }
 
-func genFeed(ytPathPart string, database *sql.DB, logger *slog.Logger, rCtx context.Context, cCtx *cli.Context) (*url.URL, error) {
-	base_url := cCtx.String("base-url")
+func updateHandler(queries *data.Queries, baseURL string) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		const defaultNewEpsToFetch = 5
 
-	youtubeUrl := fmt.Sprintf("https://www.youtube.com/%s", ytPathPart)
-	logger = logger.With(slog.String("channel_url", youtubeUrl))
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, "baseURL", baseURL)
+		ctx = context.WithValue(ctx, "queries", queries)
+		logger := ctx.Value("logger").(*slog.Logger)
 
-	cmd := exec.Command("yt-dlp", "-J", "--playlist-items=:20", youtubeUrl)
-	var outb, errb bytes.Buffer
-	cmd.Stdout = &outb
-	cmd.Stderr = &errb
-	logger = logger.With(slog.String("yt_dlp_command", fmt.Sprintf("%v", cmd.Args)))
+		feedId := strings.TrimPrefix(r.URL.Path, "/update/")
+		logger = logger.With(slog.String("feed_id", feedId))
 
-	err := cmd.Run()
-	if err != nil {
-		var exitError *exec.ExitError
-		if errors.As(err, &exitError) {
-			logger = logger.With(slog.String("stderr", errb.String()))
+		ytURL := url.URL{
+			Scheme: "https",
+			Host:   "www.youtube.com",
+			Path:   fmt.Sprintf("/channel/%s", feedId),
 		}
-		logger.Error("failed to get channel information")
-		return nil, err
+
+		p, err := fetchPodcast(ytURL, uint64(defaultNewEpsToFetch), ctx)
+		if err != nil {
+			logger.With(slog.String("err", err.Error())).Error("Something went wrong when getting feed to update")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		p, err = p.withOldEps(ctx)
+		if err != nil {
+			logger.With(slog.String("err", err.Error())).Error("Something went wrong when adding old eposides to feed")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		err = upsertPodcast(*p, ctx)
+		if err != nil {
+			logger.With(slog.String("err", err.Error())).Error("Something went wrong when inserting feed into db")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 	}
-
-	var c YouTubeChannel
-	err = json.Unmarshal(outb.Bytes(), &c)
-	if err != nil {
-		logger.Error("failed to unmarshal yt-dlp output into YouTubeChannel")
-		return nil, err
-	}
-
-	now := time.Now()
-	podcastFeed := podcast.New(
-		strings.Replace(c.Title, " - Videos", "", -1),
-		c.Url, c.Description, &now, &now,
-	)
-	podcastFeed.AddAuthor(c.Author, "")
-	podcastFeed.AddImage(getFeedImage(&c))
-	podcastFeed.AddSummary(c.Description)
-	podcastFeed.IExplicit = "no"
-	podcastFeed.IBlock = "Yes"
-	podcastFeed.Generator = "vpod"
-
-	for _, v := range c.Videos {
-		var enclosureUrl string
-		var enclosureLengthBytes int64
-		acceptable_file_found := false
-		for _, f := range v.Formats {
-			is_english := strings.Split(f.Language, "-")[0] == "en"
-			audio_only := f.Resolution == "audio only"
-			correct_ext := f.AudioExt == "m4a"
-			no_drm := !f.Drm
-			no_dynamic_range_compression := !strings.Contains(f.Id, "drc")
-
-			if is_english && audio_only && correct_ext && no_drm && no_dynamic_range_compression {
-				acceptable_file_found = true
-				enclosureUrl = fmt.Sprintf("%s/audio/%s/%s", base_url, v.Id, f.Id)
-				enclosureLengthBytes = f.Filesize
-				break
-			}
-		}
-		if !acceptable_file_found {
-			logger.With(slog.String("video_id", v.Id)).Error("No acceptable file found, moving on.")
-			continue
-		}
-
-		if v.Title == "" {
-			v.Title = "untitled"
-		}
-		if v.Description == "" {
-			v.Description = "no description provided"
-		}
-
-		item := podcast.Item{
-			Title:       v.Title,
-			Description: v.Description,
-			Link:        v.Url,
-		}
-		d := v.ReleaseTimestamp.Time
-		item.AddPubDate(&d)
-		item.AddDuration(v.Duration)
-		item.AddImage(v.Thumbnail)
-		item.AddEnclosure(enclosureUrl, podcast.M4A, enclosureLengthBytes)
-
-		if _, err := podcastFeed.AddItem(item); err != nil {
-			logger.With(slog.String("video_id", v.Id)).With(slog.String("err", err.Error())).Error("failed to add video as podcast item")
-			continue
-		}
-	}
-
-	feedXML := new(bytes.Buffer)
-	podcastFeed.Encode(feedXML)
-	feedXMLStr := feedXML.String()
-	db.CreateFeed(rCtx, database, &c.Id, &c.Title, &c.Description, &c.Url, &feedXMLStr)
-
-	feedURL, err := url.Parse(base_url)
-	if err != nil {
-		logger.Error("failed to parse feed url during construction")
-		return nil, err
-	}
-	feedURL = feedURL.JoinPath("feed", c.Id)
-
-	var finalURL *url.URL
-	format := rCtx.Value("url").(*url.URL).Query().Get("format")
-	switch format {
-	case "overcast":
-		queryParams := url.Values{"url": {feedURL.String()}}
-		overcastURL := &url.URL{
-			Scheme:   "overcast",
-			Host:     "x-callback-url",
-			Path:     "/add",
-			RawQuery: queryParams.Encode(), // escapes "url" key automatically
-		}
-		finalURL = overcastURL
-	default:
-		finalURL = feedURL
-	}
-
-	return finalURL, nil
-}
-
-func getFeedImage(c *YouTubeChannel) string {
-	for _, logo := range c.Logos {
-		if logo.Preference == 1 {
-			return logo.Url
-		}
-	}
-	return "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Minecraft_missing_texture_block.svg/1024px-Minecraft_missing_texture_block.svg.png"
-
+	return http.HandlerFunc(fn)
 }

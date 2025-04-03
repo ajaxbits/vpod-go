@@ -11,6 +11,7 @@ mkShell {
       gopls
       gotools
       just
+      sqlc
       sqlite
       vector
       visidata

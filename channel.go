@@ -100,7 +100,7 @@ type YouTubeVideo struct {
 	ChannelTitle     string `json:"channel"`
 	ChannelUrl       string `json:"channel_url"`
 	Description      string
-	Duration         int64
+	Duration         int64  `json:"duration"`
 	DurationString   string `json:"duration_string"`
 	Formats          []YouTubeVideoFormat
 	Id               string
