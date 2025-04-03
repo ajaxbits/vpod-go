@@ -157,7 +157,6 @@ func genFeedHandler(database *sql.DB, cCtx *cli.Context) http.Handler {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		} else {
 			logger.Debug("Feed successfully generated")
-			// w.Write([]byte(*feedUrl))
 			w.Write([]byte(feedUrl.String()))
 		}
 	}
@@ -194,7 +193,10 @@ func genFeed(ytPathPart string, database *sql.DB, logger *slog.Logger, rCtx cont
 	}
 
 	now := time.Now()
-	podcastFeed := podcast.New(c.Title, c.Url, c.Description, &now, &now)
+	podcastFeed := podcast.New(
+		strings.Replace(c.Title, " - Videos", "", -1),
+		c.Url, c.Description, &now, &now,
+	)
 	podcastFeed.AddAuthor(c.Author, "")
 	podcastFeed.AddImage(getFeedImage(&c))
 	podcastFeed.AddSummary(c.Description)
@@ -221,8 +223,15 @@ func genFeed(ytPathPart string, database *sql.DB, logger *slog.Logger, rCtx cont
 			}
 		}
 		if !acceptable_file_found {
-			fmt.Println("No acceptable file found, moving on.")
+			logger.With(slog.String("video_id", v.Id)).Error("No acceptable file found, moving on.")
 			continue
+		}
+
+		if v.Title == "" {
+			v.Title = "untitled"
+		}
+		if v.Description == "" {
+			v.Description = "no description provided"
 		}
 
 		item := podcast.Item{
@@ -237,7 +246,8 @@ func genFeed(ytPathPart string, database *sql.DB, logger *slog.Logger, rCtx cont
 		item.AddEnclosure(enclosureUrl, podcast.M4A, enclosureLengthBytes)
 
 		if _, err := podcastFeed.AddItem(item); err != nil {
-			log.Fatal(err)
+			logger.With(slog.String("video_id", v.Id)).With(slog.String("err", err.Error())).Error("failed to add video as podcast item")
+			continue
 		}
 	}
 
