@@ -10,7 +10,7 @@ import (
 )
 
 //go:embed schema.sql
-var ddl string
+var DDL string
 
 func Initialize(ctx context.Context) (*sql.DB, *Queries, error) {
 	db, err := sql.Open("sqlite3", "./podcasts.db")
@@ -22,18 +22,7 @@ func Initialize(ctx context.Context) (*sql.DB, *Queries, error) {
 	db.SetMaxIdleConns(25)
 	db.SetConnMaxLifetime(5 * time.Minute)
 
-	// _, err = db.Exec("PRAGMA journal_mode=WAL;")
-	// if err != nil {
-	// 	return nil, err
-	// }
-	//
-	// _, err = db.Exec("PRAGMA synchronous=NORMAL;")
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// create tables
-	if _, err := db.ExecContext(ctx, ddl); err != nil {
+	if _, err := db.ExecContext(ctx, DDL); err != nil {
 		return nil, nil, err
 	}
 
