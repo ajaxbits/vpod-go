@@ -107,7 +107,7 @@ func serve(cCtx *cli.Context) error {
 		Addr:         address,
 		ReadTimeout:  300 * time.Second, // for long audio returns
 		WriteTimeout: 120 * time.Second,
-		IdleTimeout:  120 * time.Second,
+		IdleTimeout:  300 * time.Second,
 		Handler:      handler,
 	}
 	logger.Info("starting server", slog.String("address", address))
