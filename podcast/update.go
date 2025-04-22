@@ -8,7 +8,7 @@ import (
 	"github.com/eduncan911/podcast"
 )
 
-func (p Podcast) WithOldEps(ctx context.Context) (*Podcast, error) {
+func (p Podcast) AppendOldEps(ctx context.Context) (*Podcast, error) {
 	queries, ok := ctx.Value("queries").(*data.Queries)
 	if !ok {
 		return nil, errors.New("could not get queries from ctx")

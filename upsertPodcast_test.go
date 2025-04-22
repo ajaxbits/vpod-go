@@ -47,8 +47,6 @@ func Test_upsertPodcast(t *testing.T) {
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, "queries", queries)
 
-	now := time.Now()
-
 	tests := []struct {
 		name     string
 		expected TestData
@@ -82,8 +80,6 @@ func Test_upsertPodcast(t *testing.T) {
 				tt.expected.Title,
 				*link,
 				tt.expected.Description,
-				&now,
-				&now,
 			)
 
 			gotErr := upsertPodcast(*p, tt.ctx)

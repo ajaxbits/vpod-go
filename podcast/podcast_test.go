@@ -19,12 +19,13 @@ func TestNew(t *testing.T) {
 	tests := []struct {
 		name string // description of this test case
 		// Named input parameters for target function.
-		id      string
-		link    url.URL
-		title   string
-		opts    []Option
-		want    want
-		wantErr bool
+		id          string
+		link        url.URL
+		title       string
+		description string
+		opts        []Option
+		want        want
+		wantErr     bool
 	}{
 		{
 			name:  "happy path defaults",
@@ -34,10 +35,11 @@ func TestNew(t *testing.T) {
 				Scheme: "https",
 				Host:   "www.google.com",
 			},
+			description: "A Podcast, wow!",
 			want: want{
 				id:            "my-id",
 				title:         "This is a podcast",
-				description:   "",
+				description:   "A Podcast, wow!",
 				link:          "https://www.google.com",
 				pubDate:       time.Now().UTC().Format(time.RFC1123Z),
 				lastBuildDate: time.Now().UTC().Format(time.RFC1123Z),
@@ -52,11 +54,11 @@ func TestNew(t *testing.T) {
 				Scheme: "https",
 				Host:   "www.google.com",
 			},
-			opts: []Option{WithDescription("Some Description eh?")},
+			description: "A Podcast, wow!",
 			want: want{
 				id:            "my-id",
 				title:         "This is a podcast",
-				description:   "Some Description eh?",
+				description:   "A Podcast, wow!",
 				link:          "https://www.google.com",
 				pubDate:       time.Now().UTC().Format(time.RFC1123Z),
 				lastBuildDate: time.Now().UTC().Format(time.RFC1123Z),
@@ -64,28 +66,30 @@ func TestNew(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:  "with pub date",
-			id:    "my-id",
-			title: "This is a podcast",
+			name:        "with pub date",
+			description: "A Podcast, wow!",
+			id:          "my-id",
 			link: url.URL{
 				Scheme: "https",
 				Host:   "www.google.com",
 			},
-			opts: []Option{WithPubDate(time.Date(2009, 11, 17, 20, 34, 58, 651387237, time.UTC))},
+			title: "This is a podcast",
+			opts:  []Option{WithPubDate(time.Date(2009, 11, 17, 20, 34, 58, 651387237, time.UTC))},
 			want: want{
+				description:   "A Podcast, wow!",
 				id:            "my-id",
-				title:         "This is a podcast",
-				description:   "",
+				lastBuildDate: time.Now().UTC().Format(time.RFC1123Z),
 				link:          "https://www.google.com",
 				pubDate:       "Tue, 17 Nov 2009 20:34:58 +0000",
-				lastBuildDate: time.Now().UTC().Format(time.RFC1123Z),
+				title:         "This is a podcast",
 			},
 			wantErr: false,
 		},
 		{
-			name:  "no id",
-			id:    "",
-			title: "This is a podcast",
+			name:        "no id",
+			description: "A Podcast, wow!",
+			id:          "",
+			title:       "This is a podcast",
 			link: url.URL{
 				Scheme: "https",
 				Host:   "www.google.com",
@@ -93,9 +97,27 @@ func TestNew(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:  "no title",
+			name:        "no title",
+			description: "A Podcast, wow!",
+			id:          "my-id",
+			title:       "",
+			link: url.URL{
+				Scheme: "https",
+				Host:   "www.google.com",
+			},
+			wantErr: true,
+		},
+		{
+			name:        "no link",
+			description: "A Podcast, wow!",
+			id:          "my-id",
+			title:       "title",
+			wantErr:     true,
+		},
+		{
+			name:  "no description",
 			id:    "my-id",
-			title: "",
+			title: "title",
 			link: url.URL{
 				Scheme: "https",
 				Host:   "www.google.com",
@@ -107,7 +129,7 @@ func TestNew(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, gotErr := New(tt.id, tt.title, tt.link, tt.opts...)
+			got, gotErr := New(tt.id, tt.title, tt.link, tt.description, tt.opts...)
 			if gotErr != nil {
 				if !tt.wantErr {
 					t.Errorf("New() failed: %v", gotErr)

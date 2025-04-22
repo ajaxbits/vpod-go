@@ -15,6 +15,8 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"vpod/data"
+	"vpod/podcast"
+	"vpod/youtube"
 )
 
 type CliFlags struct {
@@ -147,25 +149,30 @@ func genFeedHandler(queries *data.Queries, cCtx *cli.Context) http.Handler {
 		ctx = context.WithValue(ctx, "queries", queries)
 		logger := ctx.Value("logger").(*slog.Logger)
 
-		baseURLString := cCtx.String("base-url")
-		baseURL, err := url.Parse(baseURLString)
+		baseURL, err := url.Parse(cCtx.String("base-url"))
 		if err != nil {
 			logger.With(slog.String("err", err.Error())).Error("Something went wrong when generating feed")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		ctx = context.WithValue(ctx, "baseURL", baseURLString)
+
+		logger.Info("generating feed")
 
 		ytURL := url.URL{
 			Scheme: "https",
 			Host:   "youtube.com",
 			Path:   strings.TrimPrefix(r.URL.Path, "/gen/"),
 		}
-
-		logger.Info("generating feed")
-		p, err := fetchPodcast(ytURL, uint64(20), ctx)
+		c, err := youtube.FetchChannel(ytURL, youtube.WithNItems(20))
 		if err != nil {
-			logger.With(slog.String("err", err.Error())).Error("Something went wrong when fetching and generating feed")
+			logger.With(slog.String("err", err.Error())).Error("Something went wrong when fetching feed")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		p, err := podcast.FromChannel(*c, *baseURL) // TODO: decide what to do about PubDate
+		if err != nil {
+			logger.With(slog.String("err", err.Error())).Error("Something went wrong when generating feed")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -193,6 +200,13 @@ func updateHandler(queries *data.Queries, baseURL string) http.Handler {
 		ctx = context.WithValue(ctx, "queries", queries)
 		logger := ctx.Value("logger").(*slog.Logger)
 
+		baseURL, err := url.Parse(baseURL)
+		if err != nil {
+			logger.With(slog.String("err", err.Error())).Error("Something went wrong when generating feed")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		feedId := strings.TrimPrefix(r.URL.Path, "/update/")
 		logger = logger.With(slog.String("feed_id", feedId))
 
@@ -201,15 +215,21 @@ func updateHandler(queries *data.Queries, baseURL string) http.Handler {
 			Host:   "www.youtube.com",
 			Path:   fmt.Sprintf("/channel/%s", feedId),
 		}
-
-		p, err := fetchPodcast(ytURL, uint64(defaultNewEpsToFetch), ctx)
+		c, err := youtube.FetchChannel(ytURL)
 		if err != nil {
-			logger.With(slog.String("err", err.Error())).Error("Something went wrong when getting feed to update")
+			logger.With(slog.String("err", err.Error())).Error("Something went wrong when fetching feed")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		p, err = p.WithOldEps(ctx)
+		p, err := podcast.FromChannel(*c, *baseURL) // TODO: decide what to do about PubDate
+		if err != nil {
+			logger.With(slog.String("err", err.Error())).Error("Something went wrong when generating feed")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		p, err = p.AppendOldEps(ctx)
 		if err != nil {
 			logger.With(slog.String("err", err.Error())).Error("Something went wrong when adding old eposides to feed")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
