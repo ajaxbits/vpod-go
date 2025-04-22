@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -27,7 +28,7 @@ type YouTubeChannel struct {
 	Logos       []YouTubeChannelLogo `json:"thumbnails"`
 	Videos      []YouTubeVideo       `json:"entries"`
 	Title       string
-	Url         string `json:"channel_url"`
+	URL         url.URL `json:"channel_url"`
 }
 
 func (ytc *YouTubeChannel) UnmarshalJSON(data []byte) error {
@@ -38,11 +39,17 @@ func (ytc *YouTubeChannel) UnmarshalJSON(data []byte) error {
 		Id          string               `json:"channel_id"`
 		Logos       []YouTubeChannelLogo `json:"thumbnails"`
 		Title       string
-		Url         string `json:"channel_url"`
+		URL         string `json:"channel_url"`
 	}
 	if err := json.Unmarshal(data, &tmp); err != nil {
 		return err
 	}
+
+	u, err := url.Parse(tmp.URL)
+	if err != nil {
+		return err
+	}
+	ytc.URL = *u
 
 	var firstEntry []map[string]interface{}
 	if err := json.Unmarshal(tmp.Entries, &firstEntry); err != nil {
@@ -75,7 +82,6 @@ func (ytc *YouTubeChannel) UnmarshalJSON(data []byte) error {
 	ytc.Id = tmp.Id
 	ytc.Logos = tmp.Logos
 	ytc.Title = tmp.Title
-	ytc.Url = tmp.Url
 	return nil
 }
 

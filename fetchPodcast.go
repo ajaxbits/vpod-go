@@ -10,8 +10,7 @@ import (
 	"os/exec"
 	"strings"
 	"time"
-
-	"github.com/eduncan911/podcast"
+	"vpod/podcast"
 )
 
 const placeholder_image = "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Minecraft_missing_texture_block.svg/1024px-Minecraft_missing_texture_block.svg.png"
@@ -50,12 +49,17 @@ func channelToPodcast(
 	c YouTubeChannel,
 	pubDate *time.Time,
 	baseURL *url.URL,
-) (*Podcast, error) {
+) (*podcast.Podcast, error) {
 	now := time.Now()
-	p := podcast.New(
+	p, err := podcast.New(
+		c.Id,
 		strings.Replace(c.Title, " - Videos", "", -1),
-		c.Url, c.Description, pubDate, &now, // TODO: fix the distinction in the db between update_time and build time here
+		c.URL, c.Description, pubDate, &now, // TODO: fix the distinction in the db between update_time and build time here
 	)
+	if err != nil {
+		return nil, err
+	}
+
 	imageLink := getFeedImage(&c)
 	p.AddAuthor(c.Author, "")
 	p.AddImage(imageLink.String())
@@ -110,13 +114,10 @@ func channelToPodcast(
 		}
 	}
 
-	return &Podcast{
-		Podcast: &p,
-		Id:      c.Id,
-	}, nil
+	return p, nil
 }
 
-func fetchPodcast(ytURL url.URL, numItems uint64, ctx context.Context) (*Podcast, error) {
+func fetchPodcast(ytURL url.URL, numItems uint64, ctx context.Context) (*podcast.Podcast, error) {
 	u, ok := ctx.Value("baseURL").(string)
 	if !ok {
 		return nil, errors.New("could not get baseURL from ctx")

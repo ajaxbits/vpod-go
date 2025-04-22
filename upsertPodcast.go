@@ -10,11 +10,10 @@ import (
 	"strings"
 	"time"
 	"vpod/data"
-
-	"github.com/eduncan911/podcast"
+	"vpod/podcast"
 )
 
-func upsertPodcast(p Podcast, ctx context.Context) error {
+func upsertPodcast(p podcast.Podcast, ctx context.Context) error {
 	queries, ok := ctx.Value("queries").(*data.Queries)
 	if !ok {
 		return errors.New("could not get queries from ctx")

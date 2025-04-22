@@ -7,11 +7,12 @@ import (
 	"database/sql"
 	_ "embed"
 	"encoding/xml"
+	"net/url"
 	"testing"
 	"time"
 	"vpod/data"
+	"vpod/podcast"
 
-	"github.com/eduncan911/podcast"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -71,10 +72,18 @@ func Test_upsertPodcast(t *testing.T) {
 
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			pod := podcast.New(tt.expected.Title, tt.expected.Link, tt.expected.Description, &now, &now)
-			p, _ := NewPodcast(
+			link, err := url.Parse(tt.expected.Link)
+			if err != nil {
+				t.Errorf("failed: %v", err)
+			}
+
+			p, _ := podcast.New(
 				tt.expected.id,
-				&pod,
+				tt.expected.Title,
+				*link,
+				tt.expected.Description,
+				&now,
+				&now,
 			)
 
 			gotErr := upsertPodcast(*p, tt.ctx)
@@ -91,7 +100,7 @@ func Test_upsertPodcast(t *testing.T) {
 				got    TestData
 				gotXML string
 			)
-			err := db.QueryRow("select description, id, link, title, xml from feeds where cast(id as text) = ?", "todo-test").Scan(
+			err = db.QueryRow("select description, id, link, title, xml from feeds where cast(id as text) = ?", "todo-test").Scan(
 				&got.Description,
 				&got.id,
 				&got.Link,

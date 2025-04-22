@@ -1,4 +1,4 @@
-package main
+package podcast
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"github.com/eduncan911/podcast"
 )
 
-func (p Podcast) withOldEps(ctx context.Context) (*Podcast, error) {
+func (p Podcast) WithOldEps(ctx context.Context) (*Podcast, error) {
 	queries, ok := ctx.Value("queries").(*data.Queries)
 	if !ok {
 		return nil, errors.New("could not get queries from ctx")

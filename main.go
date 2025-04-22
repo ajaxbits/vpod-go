@@ -209,7 +209,7 @@ func updateHandler(queries *data.Queries, baseURL string) http.Handler {
 			return
 		}
 
-		p, err = p.withOldEps(ctx)
+		p, err = p.WithOldEps(ctx)
 		if err != nil {
 			logger.With(slog.String("err", err.Error())).Error("Something went wrong when adding old eposides to feed")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
