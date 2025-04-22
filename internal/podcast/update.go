@@ -3,7 +3,7 @@ package podcast
 import (
 	"context"
 	"errors"
-	"vpod/data"
+	"vpod/internal/data"
 
 	"github.com/eduncan911/podcast"
 )

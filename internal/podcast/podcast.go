@@ -6,7 +6,7 @@ import (
 
 	"strings"
 	"time"
-	"vpod/youtube"
+	"vpod/internal/youtube"
 
 	"github.com/eduncan911/podcast"
 )
