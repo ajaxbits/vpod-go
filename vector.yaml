@@ -9,6 +9,15 @@ transforms:
     type: "remap"
     source: |
       ., _ = parse_json(.message)
+      .app = "vpod"
+      .hostname = get_hostname!()
+
+      if exists(.request.user_agent) {
+          user_agent_str = .request.user_agent
+          del(.request.user_agent)
+          .request.user_agent = parse_user_agent!(user_agent_str, mode: "reliable")
+          .request.user_agent.raw = user_agent_str
+      }
 
 sinks:
   out:
@@ -27,3 +36,18 @@ sinks:
       codec: "json"
     labels:
       app: "vpod"
+
+  vlogs:
+    inputs:
+      - "logs_inner_json_unwrapped"
+    type: elasticsearch
+    endpoints:
+      - ${VLOGS}/insert/elasticsearch/
+    api_version: v8
+    compression: gzip
+    healthcheck:
+      enabled: false
+    query:
+      _msg_field: msg
+      _time_field: time
+      _stream_fields: app,hostname

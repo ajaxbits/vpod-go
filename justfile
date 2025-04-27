@@ -4,8 +4,8 @@ build:
 run: build
     result/bin/vpod
 
-run-loki endpoint: build
-    result/bin/vpod | LOKI={{endpoint}} nix develop --command vector --config=vector.yaml
+run-loki loki vlogs: build
+    result/bin/vpod | LOKI={{loki}} VLOGS={{vlogs}} nix develop --command vector --config=vector.yaml
 
 
 build-image:
