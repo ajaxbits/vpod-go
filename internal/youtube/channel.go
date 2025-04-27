@@ -55,7 +55,7 @@ func (c *Channel) UnmarshalJSON(data []byte) error {
 	}
 	c.URL = *u
 
-	var firstEntry []map[string]interface{}
+	var firstEntry []map[string]any
 	if err := json.Unmarshal(tmp.Entries, &firstEntry); err != nil {
 		return err
 	}
@@ -127,7 +127,7 @@ func WithNItems(n uint64) FetchChannelOption {
 	}
 }
 
-func FetchChannel(ytURL url.URL, opts ...FetchChannelOption) (*Channel, error) {
+func FetchChannel(ytURL *url.URL, opts ...FetchChannelOption) (*Channel, error) {
 	var options fetchChannelOptions
 	for _, opt := range opts {
 		err := opt(&options)

@@ -10,6 +10,34 @@ import (
 	"database/sql"
 )
 
+const getAllFeeds = `-- name: GetAllFeeds :many
+SELECT id
+FROM Feeds
+`
+
+func (q *Queries) GetAllFeeds(ctx context.Context) ([][]byte, error) {
+	rows, err := q.db.QueryContext(ctx, getAllFeeds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items [][]byte
+	for rows.Next() {
+		var id []byte
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getEpisodesForFeed = `-- name: GetEpisodesForFeed :many
 SELECT id,
   audio_url,

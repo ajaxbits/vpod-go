@@ -11,11 +11,10 @@ import (
 	"os"
 	"strings"
 	"time"
-
-	"github.com/urfave/cli/v2"
-
 	"vpod/internal/podcast"
 	"vpod/internal/youtube"
+
+	"github.com/urfave/cli/v2"
 )
 
 type CliFlags struct {
@@ -71,30 +70,16 @@ func main() {
 }
 
 func serve(cCtx *cli.Context) error {
-	var lvl = new(slog.LevelVar)
-	switch cCtx.String("log-level") {
-	case "DEBUG":
-		lvl.Set(slog.LevelDebug)
-	case "WARN":
-		lvl.Set(slog.LevelWarn)
-	case "ERROR":
-		lvl.Set(slog.LevelError)
-	default:
-		lvl.Set(slog.LevelInfo)
-	}
-
-	logger := slog.New(
-		slog.NewJSONHandler(
-			os.Stdout,
-			&slog.HandlerOptions{Level: lvl},
-		),
+	env, err := NewEnv(
+		cCtx.String("log-level"),
+		cCtx.String("base-url"),
 	)
-
-	env, err := NewEnv()
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer env.database.Close()
+	defer env.Cleanup()
+
+	logger := env.logger
 	logger.Debug("Env initalized")
 
 	mux := http.NewServeMux()
@@ -162,7 +147,7 @@ func (e *Env) genFeedHandler(cCtx *cli.Context) http.Handler {
 			Host:   "youtube.com",
 			Path:   strings.TrimPrefix(r.URL.Path, "/gen/"),
 		}
-		c, err := youtube.FetchChannel(ytURL, youtube.WithNItems(20))
+		c, err := youtube.FetchChannel(&ytURL, youtube.WithNItems(20))
 		if err != nil {
 			logger.With(slog.String("err", err.Error())).Error("Something went wrong when fetching feed")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -213,7 +198,7 @@ func (e *Env) updateHandler(baseURL string) http.Handler {
 			Host:   "www.youtube.com",
 			Path:   fmt.Sprintf("/channel/%s", feedId),
 		}
-		c, err := youtube.FetchChannel(ytURL)
+		c, err := youtube.FetchChannel(&ytURL)
 		if err != nil {
 			logger.With(slog.String("err", err.Error())).Error("Something went wrong when fetching feed")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -240,7 +225,6 @@ func (e *Env) updateHandler(baseURL string) http.Handler {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
 	}
 	return http.HandlerFunc(fn)
 }
