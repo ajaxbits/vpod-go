@@ -145,7 +145,9 @@ func FetchChannel(ytURL url.URL, opts ...FetchChannelOption) (*Channel, error) {
 
 	cmd := exec.Command(
 		"yt-dlp",
-		"-J",
+		"--dump-single-json",
+		"--ignore-no-formats-error", // ignore when a video is age-restricted
+		// ^ TODO: add a feature to pass in cookies as desired
 		fmt.Sprintf("--playlist-items=0:%d", numItems),
 		ytURL.String(),
 	)
