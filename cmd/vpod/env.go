@@ -94,19 +94,7 @@ func newScheduler(logger *slog.Logger, baseURL *url.URL, queries *data.Queries) 
 		return nil, err
 	}
 
-	_, err = s.NewJob(
-		gocron.DurationJob(
-			1*time.Hour, // TODO
-		),
-		gocron.NewTask(
-			updateAll,
-			logger,
-			baseURL,
-			queries,
-		),
-		gocron.WithSingletonMode(gocron.LimitModeReschedule), // TODO: examine
-	)
-	if err != nil {
+	if err := createUpdateJob(s, logger, baseURL, queries); err != nil {
 		return nil, err
 	}
 
