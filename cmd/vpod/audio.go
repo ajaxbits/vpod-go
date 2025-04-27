@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"mime"
 	"net/http"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -41,16 +42,36 @@ func audioHandler() http.Handler {
 }
 
 func getAudio(m AudioMetadata, logger *slog.Logger) (*string, error) {
+	// Serve up video quickly if it already exists
+	// TODO: make configurable? This could fetch old video versions sometimes
+	filename := fmt.Sprintf("%s.m4a", m.VideoId)
+	fileInfo, err := os.Stat(filename)
+	if err == nil {
+		isNonEmpty := fileInfo.Size() != 0
+		isAFile := !fileInfo.IsDir()
+		if isNonEmpty && isAFile {
+			return &filename, nil
+		}
+	}
+
 	youtubeUrl := fmt.Sprintf("https://www.youtube.com/watch?v=%s", m.VideoId)
 	logger = logger.With(slog.String("video_url", youtubeUrl))
 
-	cmd := exec.Command("yt-dlp", fmt.Sprintf("--format=%s", m.FormatId), "--embed-metadata", "--embed-thumbnail", "--sponsorblock-remove=sponsor", "--output=%(id)s.m4a", youtubeUrl)
+	cmd := exec.Command(
+		"yt-dlp",
+		fmt.Sprintf("--format=%s", m.FormatId),
+		"--embed-metadata",
+		"--embed-thumbnail",
+		"--sponsorblock-remove=sponsor",
+		"--output=%(id)s.m4a",
+		youtubeUrl,
+	)
 	var errb bytes.Buffer
 	cmd.Stderr = &errb
 	logger = logger.With(slog.String("yt_dlp_command", fmt.Sprintf("%v", cmd.Args)))
 
 	logger.Info("getting audio")
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		var exitError *exec.ExitError
 		if errors.As(err, &exitError) {
@@ -62,6 +83,5 @@ func getAudio(m AudioMetadata, logger *slog.Logger) (*string, error) {
 		return nil, err
 	}
 
-	filename := fmt.Sprintf("%s.m4a", m.VideoId)
 	return &filename, nil
 }
