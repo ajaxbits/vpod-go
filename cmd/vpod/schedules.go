@@ -24,3 +24,19 @@ func createUpdateJob(s gocron.Scheduler, logger *slog.Logger, baseURL *url.URL, 
 	)
 	return err
 }
+
+func createFileCullingJob(s gocron.Scheduler, logger *slog.Logger) error {
+	_, err := s.NewJob(
+		gocron.DurationJob(
+			24*time.Hour, // TODO
+		),
+		gocron.NewTask(
+			cullFiles,
+			logger,
+		),
+		gocron.WithStartAt(
+			gocron.WithStartImmediately(),
+		),
+	)
+	return err
+}

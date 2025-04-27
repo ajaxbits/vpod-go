@@ -98,6 +98,10 @@ func newScheduler(logger *slog.Logger, baseURL *url.URL, queries *data.Queries) 
 		return nil, err
 	}
 
+	if err = createFileCullingJob(s, logger); err != nil {
+		return nil, err
+	}
+
 	s.Start()
 	return &s, nil
 }
