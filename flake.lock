@@ -58,11 +58,11 @@
     },
     "yt-dlp": {
       "locked": {
-        "lastModified": 1743579717,
-        "narHash": "sha256-zB+iGzTnaSLXQEozv2Y3yXSneGCnPvu734hZyIeIb8s=",
+        "lastModified": 1745778752,
+        "narHash": "sha256-cSpQuNn2RFIcds4xjITyMJm63wR/FgGa0ucpu1uX2IA=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "5841240c0796788f835a9186024b573819ab3138",
+        "rev": "c1f9d2265b853f148304c50bad66885deb5ab47c",
         "type": "github"
       },
       "original": {
