@@ -35,9 +35,13 @@
         }:
         let
           inherit (import inputs.yt-dlp { inherit system; }) yt-dlp;
+          inherit (pkgs) sqlite;
 
           name = "vpod";
-          runtimeDeps = [ yt-dlp ];
+          runtimeDeps = [
+            sqlite
+            yt-dlp
+          ];
         in
         {
           packages =

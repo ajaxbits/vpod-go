@@ -11,8 +11,8 @@ mkShell {
       gopls
       gotools
       just
+      nix-output-monitor
       sqlc
-      sqlite
       vector
       visidata
       yq
