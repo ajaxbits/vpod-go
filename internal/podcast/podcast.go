@@ -3,7 +3,6 @@ package podcast
 import (
 	"errors"
 	"net/url"
-
 	"strings"
 	"time"
 	"vpod/internal/youtube"
@@ -89,11 +88,15 @@ func New(
 }
 
 func FromChannel(c youtube.Channel, baseURL url.URL, opts ...Option) (*Podcast, error) {
+	desc := "no description provided"
+	if c.Description != "" {
+		desc = c.Description
+	}
 	p, err := New(
 		c.Id,
 		strings.Replace(c.Title, " - Videos", "", -1),
 		c.URL,
-		c.Description,
+		desc,
 		opts...,
 	)
 	if err != nil {
@@ -102,7 +105,9 @@ func FromChannel(c youtube.Channel, baseURL url.URL, opts ...Option) (*Podcast, 
 
 	p.AddAuthor(c.Author, "no_email_provided") // No kidding, we must add an email of len > 0...
 	p.AddImage(c.GetLogo().String())
-	p.AddSummary(c.Description)
+
+	p.AddSummary(desc)
+
 	p.IExplicit = "no"
 	p.IBlock = "Yes"
 	p.Generator = "vpod"
