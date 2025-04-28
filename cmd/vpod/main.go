@@ -86,7 +86,6 @@ func serve(cCtx *cli.Context) error {
 	mux.Handle("/audio/", audioHandler())
 	mux.Handle("/feed/", env.feedHandler())
 	mux.Handle("/gen/", env.genFeedHandler(cCtx))
-	mux.Handle("/update/", env.updateHandler(cCtx.String("base-url")))
 
 	address := fmt.Sprintf("%s:%d", cCtx.String("host"), cCtx.Uint64("port"))
 	handler := loggingWrapper(mux, logger)
