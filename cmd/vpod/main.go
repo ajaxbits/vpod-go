@@ -181,6 +181,7 @@ func (e *Env) updateHandler(baseURL string) http.Handler {
 
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, "baseURL", baseURL)
+		ctx = context.WithValue(ctx, "queries", e.queries)
 		logger := ctx.Value("logger").(*slog.Logger)
 
 		baseURL, err := url.Parse(baseURL)
