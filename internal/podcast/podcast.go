@@ -100,7 +100,7 @@ func FromChannel(c youtube.Channel, baseURL url.URL, opts ...Option) (*Podcast, 
 		return nil, err
 	}
 
-	p.AddAuthor(c.Author, "")
+	p.AddAuthor(c.Author, "no_email_provided") // No kidding, we must add an email of len > 0...
 	p.AddImage(c.GetLogo().String())
 	p.AddSummary(c.Description)
 	p.IExplicit = "no"
