@@ -17,12 +17,7 @@ const (
 	GB       = MB * 1024
 )
 
-func cullFiles(ctx context.Context, logger *slog.Logger, audioStoragePath string, maxAudioStorageSize *int64) error {
-	maxSize := 1 * GB
-	if maxAudioStorageSize != nil {
-		maxSize = *maxAudioStorageSize
-	}
-
+func cullFiles(ctx context.Context, logger *slog.Logger, audioStoragePath string, maxSize int64) error {
 	files, totalSize, err := getFilesWithSize(audioStoragePath, ".m4a")
 	if err != nil {
 		return err

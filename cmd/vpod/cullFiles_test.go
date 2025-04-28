@@ -250,7 +250,7 @@ func Test_cullFiles_TableDriven(t *testing.T) {
 			logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 			// run
-			err = cullFiles(context.Background(), logger, tempDir, &tt.maxSize)
+			err = cullFiles(context.Background(), logger, tempDir, tt.maxSize)
 			if err != nil {
 				t.Fatalf("cullFiles failed: %v", err)
 			}

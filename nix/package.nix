@@ -25,9 +25,12 @@ buildGoModule {
   inherit src version;
   pname = name;
 
-  vendorHash = "sha256-tV/8P5e5Jfr4QSnse4qvTzj2f1U6WDDLtUI5YsA1RSA=";
+  vendorHash = "sha256-+ZGm7y7wuukivXBf7cEhJBSJszxTDbqch4Jmyi9mB7M=";
 
   nativeBuildInputs = [ makeWrapper ];
+  preBuild = ''
+    go test ./...
+  '';
   postFixup = ''
     wrapProgram $out/bin/${name} \
       --set PATH ${lib.makeBinPath runtimeDeps}

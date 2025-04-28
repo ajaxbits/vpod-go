@@ -34,6 +34,7 @@ func createFileCullingJob(s gocron.Scheduler, logger *slog.Logger) error {
 			cullFiles,
 			logger,
 			"./",
+			1*GB,
 		),
 		gocron.WithStartAt(
 			gocron.WithStartImmediately(),
