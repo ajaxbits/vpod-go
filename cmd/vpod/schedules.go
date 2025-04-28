@@ -33,6 +33,7 @@ func createFileCullingJob(s gocron.Scheduler, logger *slog.Logger) error {
 		gocron.NewTask(
 			cullFiles,
 			logger,
+			"./",
 		),
 		gocron.WithStartAt(
 			gocron.WithStartImmediately(),

@@ -17,21 +17,21 @@ const (
 	GB       = MB * 1024
 )
 
-const (
-	audio_storage_path     = "./"
-	max_audio_storage_size = 1 * GB
-)
+func cullFiles(ctx context.Context, logger *slog.Logger, audioStoragePath string, maxAudioStorageSize *int64) error {
+	maxSize := 1 * GB
+	if maxAudioStorageSize != nil {
+		maxSize = *maxAudioStorageSize
+	}
 
-func cullFiles(ctx context.Context, logger *slog.Logger) error {
-	files, totalSize, err := getFilesWithSize(audio_storage_path, ".m4a")
+	files, totalSize, err := getFilesWithSize(audioStoragePath, ".m4a")
 	if err != nil {
 		return err
 	}
 
-	if totalSize > max_audio_storage_size {
+	if totalSize > maxSize {
 		logger = logger.With(slog.String(
 			"desired_size_bytes",
-			strconv.Itoa(int(max_audio_storage_size)),
+			strconv.Itoa(int(maxSize)),
 		))
 
 		logger.Info("audio size bigger than desired -- culling", slog.String(
@@ -45,7 +45,7 @@ func cullFiles(ctx context.Context, logger *slog.Logger) error {
 
 		remainingSize := totalSize
 		for _, file := range files {
-			if remainingSize <= max_audio_storage_size {
+			if remainingSize <= maxSize {
 				break
 			}
 
