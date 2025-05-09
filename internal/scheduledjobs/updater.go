@@ -1,4 +1,4 @@
-package main
+package scheduledjobs
 
 import (
 	"context"
@@ -36,7 +36,7 @@ func update(
 		return err
 	}
 
-	err = upsertPodcast(queries, *p, ctx)
+	err = podcast.UpsertPodcast(queries, *p, ctx)
 	if err != nil {
 		return err
 	}

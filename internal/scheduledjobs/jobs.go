@@ -1,4 +1,4 @@
-package main
+package scheduledjobs
 
 import (
 	"log/slog"
@@ -9,7 +9,7 @@ import (
 	"github.com/go-co-op/gocron/v2"
 )
 
-func createUpdateJob(s gocron.Scheduler, logger *slog.Logger, baseURL *url.URL, queries *data.Queries) error {
+func CreateUpdateJob(s gocron.Scheduler, logger *slog.Logger, baseURL *url.URL, queries *data.Queries) error {
 	_, err := s.NewJob(
 		gocron.DurationJob(
 			1*time.Hour, // TODO
@@ -25,7 +25,7 @@ func createUpdateJob(s gocron.Scheduler, logger *slog.Logger, baseURL *url.URL, 
 	return err
 }
 
-func createFileCullingJob(s gocron.Scheduler, logger *slog.Logger) error {
+func CreateFileCullingJob(s gocron.Scheduler, logger *slog.Logger) error {
 	_, err := s.NewJob(
 		gocron.DurationJob(
 			24*time.Hour, // TODO

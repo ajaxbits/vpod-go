@@ -1,6 +1,6 @@
 //go:build !integration
 
-package main
+package podcast
 
 import (
 	"context"
@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 	"vpod/internal/data"
-	"vpod/internal/podcast"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -45,11 +44,6 @@ type TestData struct {
 func Test_upsertPodcast(t *testing.T) {
 	db, queries, _ := initDb()
 	ctx := context.Background()
-	env := Env{
-		database: db,
-		queries:  queries,
-	}
-
 	tests := []struct {
 		name     string
 		expected TestData
@@ -78,14 +72,14 @@ func Test_upsertPodcast(t *testing.T) {
 				t.Errorf("failed: %v", err)
 			}
 
-			p, _ := podcast.New(
+			p, _ := New(
 				tt.expected.id,
 				tt.expected.Title,
 				*link,
 				tt.expected.Description,
 			)
 
-			gotErr := upsertPodcast(env.queries, *p, tt.ctx)
+			gotErr := UpsertPodcast(queries, *p, tt.ctx)
 			if gotErr != nil {
 				if !tt.wantErr {
 					t.Errorf("failed: %v", gotErr)

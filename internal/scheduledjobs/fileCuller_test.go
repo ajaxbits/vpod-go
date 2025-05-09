@@ -1,4 +1,4 @@
-package main
+package scheduledjobs
 
 import (
 	"context"
@@ -17,7 +17,6 @@ func createTestFile(path string, size int64) error {
 		return err
 	}
 	defer f.Close()
-	// Write the specified number of bytes
 	if size > 0 {
 		_, err = f.Write(make([]byte, size))
 		if err != nil {

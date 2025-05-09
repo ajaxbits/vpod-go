@@ -1,4 +1,4 @@
-package main
+package podcast
 
 import (
 	"bytes"
@@ -10,10 +10,9 @@ import (
 	"strings"
 	"time"
 	"vpod/internal/data"
-	"vpod/internal/podcast"
 )
 
-func upsertPodcast(queries *data.Queries, p podcast.Podcast, ctx context.Context) error {
+func UpsertPodcast(queries *data.Queries, p Podcast, ctx context.Context) error {
 	pubDate, err := time.Parse(time.RFC1123Z, p.PubDate)
 	if err != nil {
 		return errors.New("could not parse podcast PubDate as RFC1123Z")
@@ -46,7 +45,7 @@ func upsertPodcast(queries *data.Queries, p podcast.Podcast, ctx context.Context
 }
 
 func upsertEpisode(
-	ep *podcast.Item,
+	ep *Item,
 	feedID *string,
 	queries *data.Queries,
 	ctx context.Context,
@@ -117,5 +116,4 @@ func durationStrToInt(d string) (int64, error) {
 		return 0, fmt.Errorf("invalid duration format: %s", d)
 	}
 	return h*3600 + m*60 + s, nil
-
 }

@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 	"vpod/internal/data"
+	"vpod/internal/scheduledjobs"
 
 	"github.com/go-co-op/gocron/v2"
 )
@@ -94,11 +95,11 @@ func newScheduler(logger *slog.Logger, baseURL *url.URL, queries *data.Queries) 
 		return nil, err
 	}
 
-	if err := createUpdateJob(s, logger, baseURL, queries); err != nil {
+	if err := scheduledjobs.CreateUpdateJob(s, logger, baseURL, queries); err != nil {
 		return nil, err
 	}
 
-	if err = createFileCullingJob(s, logger); err != nil {
+	if err = scheduledjobs.CreateFileCullingJob(s, logger); err != nil {
 		return nil, err
 	}
 

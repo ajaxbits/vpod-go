@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"bytes"
@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-
 	"vpod/internal/podcast"
 )
 
@@ -19,7 +18,7 @@ type AudioMetadata struct {
 	VideoId  string
 }
 
-func audioHandler() http.Handler {
+func AudioHandler() http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		logger := r.Context().Value("logger").(*slog.Logger)
 		audioPart := strings.TrimPrefix(r.URL.Path, "/audio/")
