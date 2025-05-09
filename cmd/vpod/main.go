@@ -81,6 +81,13 @@ func serve(cCtx *cli.Context) error {
 	mux.Handle("/audio/", handlers.AudioHandler())
 	mux.Handle("/feed/", handlers.FeedHandler(env.queries))
 	mux.Handle("/gen/", handlers.GenFeedHandler(cCtx, env.queries))
+	mux.Handle("/ui/gen/", handlers.GenFeedController(cCtx, env.queries))
+	// TODO: clean
+	mux.Handle("/ui/static/", http.StripPrefix(
+		"/ui/static/",
+		handlers.StaticHandler(),
+	))
+	mux.Handle("/ui/", handlers.IndexHandler())
 
 	address := fmt.Sprintf("%s:%d", cCtx.String("host"), cCtx.Uint64("port"))
 	handler := loggingWrapper(mux, logger)

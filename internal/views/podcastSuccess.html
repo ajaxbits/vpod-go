@@ -1,0 +1,11 @@
+<!-- Huge shoutout to https://github.com/nathangathright/podcast-platform-links/blob/main/schemes.md -->
+<h1>Your feed is now available</h1>
+<img src="{{ .Image }}" alt="Thumbnail for {{ .Title }}" height="100" width="100">
+<h2>Subscribe</h2>
+<ul>
+  <li><a href="{{ .Scheme }}://{{ .URI }}">RSS</a></li>
+  <li><a href="overcast://x-callback-url/add?url={{ .URI }}">Overcast</a></li>
+  <li><a href="https://antennapod.org/deeplink/subscribe?title={{ .Title }}&url={{ .URI }}">AntennaPod</a></li>
+  <li><a href="googlepodcasts://{{ .URI }}">Google Podcasts</a></li>
+  <li><a href="gpodder://{{ .URI }}">gPodder</a></li>
+</ul>

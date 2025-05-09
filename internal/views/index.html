@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title></title>
+    <link href="/ui/static/css/reset.css" rel="stylesheet">
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  </head>
+  <style>
+    /* Spinner styles */
+    .spinner {
+        display: none;
+        animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+        to { transform: translateY(-50%) rotate(360deg); }
+    }
+
+    /* Show spinner during request */
+    form.htmx-request #submitBtn .spinner {
+        display: block;
+    }
+    form.htmx-request #submitBtn {
+        padding-right: 45px; /* Make room for spinner */
+    }
+
+    .loader {
+        position: relative;
+        width: 85px;
+        height: 50px;
+        background-repeat: no-repeat;
+        background-image: linear-gradient(#000 50px, transparent 0),
+                          linear-gradient(#000 50px, transparent 0),
+                          linear-gradient(#000 50px, transparent 0),
+                          linear-gradient(#000 50px, transparent 0),
+                          linear-gradient(#000 50px, transparent 0),
+                          linear-gradient(#000 50px, transparent 0);
+        background-position: 0px center, 15px center, 30px center, 45px center, 60px center, 75px center, 90px center;
+        animation: rikSpikeRoll 0.65s linear infinite alternate;
+    }
+
+    @keyframes rikSpikeRoll {
+        0% { background-size: 10px 3px; }
+        16% { background-size: 10px 50px, 10px 3px, 10px 3px, 10px 3px, 10px 3px, 10px 3px; }
+        33% { background-size: 10px 30px, 10px 50px, 10px 3px, 10px 3px, 10px 3px, 10px 3px; }
+        50% { background-size: 10px 10px, 10px 30px, 10px 50px, 10px 3px, 10px 3px, 10px 3px; }
+        66% { background-size: 10px 3px, 10px 10px, 10px 30px, 10px 50px, 10px 3px, 10px 3px; }
+        83% { background-size: 10px 3px, 10px 3px, 10px 10px, 10px 30px, 10px 50px, 10px 3px; }
+        100% { background-size: 10px 3px, 10px 3px, 10px 3px, 10px 10px, 10px 30px, 10px 50px; }
+    }
+  </style>
+  <body>
+    <h1>Welcome to vpod</h1>
+    <form
+      hx-post="/ui/gen/"
+      hx-trigger="submit"
+      hx-target="#response-area"
+      class="search-container"
+    >
+      <input
+        type="text"
+        id="channelURL"
+        name="channelURL"
+        placeholder="Enter YouTube channel URL"
+        required
+      >
+      <button type="submit" id="submitBtn">Generate!<span class="spinner loader"></span></button>
+    </form>
+    <!-- Response will appear here -->
+    <div id="response-area"></div>
+  </body>
+</html>
