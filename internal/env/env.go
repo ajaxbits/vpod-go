@@ -1,4 +1,4 @@
-package main
+package env
 
 import (
 	"context"
@@ -15,16 +15,24 @@ import (
 )
 
 type Env struct {
-	baseURL   *url.URL
-	database  *sql.DB
-	logger    *slog.Logger
-	queries   *data.Queries
-	scheduler *gocron.Scheduler
+	auth      AuthInfo
+	BaseURL   *url.URL
+	Database  *sql.DB
+	Logger    *slog.Logger
+	Queries   *data.Queries
+	Scheduler *gocron.Scheduler
+}
+
+type AuthInfo struct {
+	User string
+	Pass string
 }
 
 func NewEnv(
 	logLevel string,
 	baseURL string,
+	user string,
+	pass string,
 ) (*Env, error) {
 	l := newLogger(logLevel)
 	if l == nil {
@@ -47,21 +55,29 @@ func NewEnv(
 	}
 
 	return &Env{
-		baseURL:   u,
-		database:  db,
-		logger:    l,
-		queries:   q,
-		scheduler: s,
+		auth: AuthInfo{
+			User: user,
+			Pass: pass,
+		},
+		BaseURL:   u,
+		Database:  db,
+		Logger:    l,
+		Queries:   q,
+		Scheduler: s,
 	}, nil
 }
 
+func (e *Env) GetAuth() AuthInfo {
+	return e.auth
+}
+
 func (e *Env) Cleanup() {
-	if e.scheduler != nil {
-		s := *e.scheduler
+	if e.Scheduler != nil {
+		s := *e.Scheduler
 		s.Shutdown()
 	}
-	if e.database != nil {
-		e.database.Close()
+	if e.Database != nil {
+		e.Database.Close()
 	}
 }
 

@@ -19,7 +19,6 @@ func gen(
 	ctx context.Context,
 	channelURL string,
 	baseURL *url.URL,
-	cCtx *cli.Context,
 	logger *slog.Logger,
 	queries *data.Queries,
 ) (*podcast.Podcast, error) {
@@ -54,8 +53,6 @@ func GenFeedController(cCtx *cli.Context, queries *data.Queries) http.Handler {
 			return
 		}
 
-		fmt.Println("got here")
-
 		ctx := r.Context()
 		logger := ctx.Value("logger").(*slog.Logger)
 
@@ -78,7 +75,7 @@ func GenFeedController(cCtx *cli.Context, queries *data.Queries) http.Handler {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 
-		p, err := gen(ctx, channelURL, baseURL, cCtx, logger, queries)
+		p, err := gen(ctx, channelURL, baseURL, logger, queries)
 		if err != nil {
 			logger.With(slog.String("err", err.Error())).Error("Something went wrong when generating feed.")
 			http.Error(w, err.Error(), http.StatusInternalServerError)

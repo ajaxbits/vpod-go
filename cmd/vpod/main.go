@@ -7,7 +7,9 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"vpod/internal/env"
 	"vpod/internal/handlers"
+	"vpod/internal/middleware"
 
 	"github.com/urfave/cli/v2"
 )
@@ -39,6 +41,17 @@ func main() {
 				Value:   "INFO",
 				EnvVars: []string{"LOG_LEVEL"},
 			},
+			&cli.StringFlag{
+				Name:    "user",
+				Usage:   "Username for frontend auth",
+				Value:   "admin",
+				EnvVars: []string{"USER"},
+			},
+			&cli.StringFlag{
+				Name:    "password",
+				Usage:   "Password for frontend auth",
+				EnvVars: []string{"PASSWORD"},
+			},
 			&cli.Uint64Flag{
 				Name:  "port",
 				Usage: "The port to run the web server on.",
@@ -65,29 +78,32 @@ func main() {
 }
 
 func serve(cCtx *cli.Context) error {
-	env, err := NewEnv(
+	env, err := env.NewEnv(
 		cCtx.String("log-level"),
 		cCtx.String("base-url"),
+		cCtx.String("user"),
+		cCtx.String("password"),
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer env.Cleanup()
 
-	logger := env.logger
+	logger := env.Logger
 	logger.Debug("Env initalized")
 
 	mux := http.NewServeMux()
 	mux.Handle("/audio/", handlers.AudioHandler())
-	mux.Handle("/feed/", handlers.FeedHandler(env.queries))
-	mux.Handle("/gen/", handlers.GenFeedHandler(cCtx, env.queries))
-	mux.Handle("/ui/gen/", handlers.GenFeedController(cCtx, env.queries))
+	mux.Handle("/feed/", handlers.FeedHandler(env.Queries))
+	mux.Handle("/gen/", handlers.GenFeedHandler(cCtx, env.Queries))
+
+	mux.Handle("/ui/gen/", middleware.BasicAuth(env, handlers.GenFeedController(cCtx, env.Queries)))
 	// TODO: clean
 	mux.Handle("/ui/static/", http.StripPrefix(
 		"/ui/static/",
-		handlers.StaticHandler(),
+		middleware.BasicAuth(env, handlers.StaticHandler()),
 	))
-	mux.Handle("/ui/", handlers.IndexHandler())
+	mux.Handle("/ui/", middleware.BasicAuth(env, handlers.IndexHandler()))
 
 	address := fmt.Sprintf("%s:%d", cCtx.String("host"), cCtx.Uint64("port"))
 	handler := loggingWrapper(mux, logger)
