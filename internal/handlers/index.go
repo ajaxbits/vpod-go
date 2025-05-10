@@ -1,18 +1,20 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 )
 
-func IndexHandler() http.Handler {
+func Index() http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "internal/views/index.html")
 	}
 	return http.HandlerFunc(fn)
 }
 
-func StaticHandler() http.Handler {
+func Static() http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println(r.URL)
 		staticDir := "./internal/views/static"
 		http.FileServer(http.Dir(staticDir)).ServeHTTP(w, r)
 	}

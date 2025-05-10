@@ -9,7 +9,7 @@ import (
 	"vpod/internal/data"
 )
 
-func FeedHandler(queries *data.Queries) http.Handler {
+func FeedLegacy(queries *data.Queries) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		logger := ctx.Value("logger").(*slog.Logger)

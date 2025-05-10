@@ -18,7 +18,7 @@ type AudioMetadata struct {
 	VideoId  string
 }
 
-func AudioHandler() http.Handler {
+func Audio() http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		logger := r.Context().Value("logger").(*slog.Logger)
 		audioPart := strings.TrimPrefix(r.URL.Path, "/audio/")

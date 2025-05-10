@@ -46,7 +46,7 @@ func gen(
 	return p, nil
 }
 
-func GenFeedController(cCtx *cli.Context, queries *data.Queries) http.Handler {
+func GenFeed(cCtx *cli.Context, queries *data.Queries) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

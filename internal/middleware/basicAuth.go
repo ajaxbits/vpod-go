@@ -2,13 +2,16 @@ package middleware
 
 import (
 	"net/http"
-	"vpod/internal/env"
 )
 
-func BasicAuth(env *env.Env, next http.Handler) http.HandlerFunc {
+type AuthInfo struct {
+	User string
+	Pass string
+}
+
+func BasicAuth(wanted AuthInfo, next http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user, pass, ok := r.BasicAuth()
-		wanted := env.GetAuth()
 		if !ok || !validateCredentials(user, pass, wanted) {
 			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -18,6 +21,6 @@ func BasicAuth(env *env.Env, next http.Handler) http.HandlerFunc {
 	}
 }
 
-func validateCredentials(username string, password string, wanted env.AuthInfo) bool {
+func validateCredentials(username string, password string, wanted AuthInfo) bool {
 	return username == wanted.User && password == wanted.Pass
 }

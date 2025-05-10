@@ -13,7 +13,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func GenFeedHandler(cCtx *cli.Context, queries *data.Queries) http.Handler {
+func GenFeedLegacy(cCtx *cli.Context, queries *data.Queries) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, "url", r.URL)
