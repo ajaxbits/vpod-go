@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"errors"
-	"fmt"
 	"html/template"
 	"log/slog"
 	"net/http"
@@ -80,10 +79,10 @@ func GenFeed(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
 
 		u := baseURL.JoinPath("feed", p.Id)
 		data := FeedPageData{
-			Image:  p.Image.URL,
-			Scheme: u.Scheme,
-			Title:  p.Title,
-			URI:    fmt.Sprintf("%s/%s", u.Host, u.RequestURI()),
+			Image:          p.Image.URL,
+			Title:          p.Title,
+			URL:            u.String(),
+			URLPathEscaped: url.PathEscape(u.String()),
 		}
 		// Path is relative to where command runs
 		tmpl := template.Must(template.ParseFiles("internal/views/podcastSuccess.html"))
@@ -93,8 +92,8 @@ func GenFeed(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
 }
 
 type FeedPageData struct {
-	Image  string
-	Scheme string
-	Title  string
-	URI    string
+	Image          string
+	Title          string
+	URL            string
+	URLPathEscaped string
 }
