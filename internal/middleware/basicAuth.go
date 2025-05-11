@@ -9,7 +9,13 @@ type AuthInfo struct {
 	Pass string
 }
 
-func BasicAuth(wanted AuthInfo, next http.Handler) http.HandlerFunc {
+func NewBasicAuth(wanted AuthInfo) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return basicAuth(wanted, next)
+	}
+}
+
+func basicAuth(wanted AuthInfo, next http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user, pass, ok := r.BasicAuth()
 		if !ok || !validateCredentials(user, pass, wanted) {

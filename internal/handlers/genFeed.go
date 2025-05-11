@@ -46,7 +46,7 @@ func gen(
 	return p, nil
 }
 
-func GenFeed(cCtx *cli.Context, queries *data.Queries) http.Handler {
+func GenFeed(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		logger := ctx.Value("logger").(*slog.Logger)

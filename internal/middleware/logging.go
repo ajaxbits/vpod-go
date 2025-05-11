@@ -1,4 +1,4 @@
-package server
+package middleware
 
 import (
 	"context"
@@ -12,9 +12,15 @@ import (
 	"github.com/google/uuid"
 )
 
+func NewLogging(logger *slog.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return logging(next, logger)
+	}
+}
+
 // gives requests a uuid and a child logger, appending request
 // metadata to said logger, returning the handler
-func loggingWrapper(next http.Handler, logger *slog.Logger) http.Handler {
+func logging(next http.Handler, logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestLogger := logger
 
