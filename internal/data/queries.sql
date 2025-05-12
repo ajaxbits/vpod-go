@@ -71,6 +71,11 @@ AND released_at < (
 )
 ORDER BY released_at DESC;
 
--- name: GetAllFeeds :many
+-- name: GetAllFeedIds :many
 SELECT id
 FROM Feeds;
+
+-- name: GetAllFeeds :many
+SELECT *
+FROM Feeds
+LIMIT ?;

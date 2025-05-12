@@ -57,7 +57,8 @@ func Serve(cCtx *cli.Context) error {
 		r.Group(func(r *Router) {
 			r.Use(middleware.NewBasicAuth(auth))
 
-			r.HandleFunc("POST /ui/gen/", handlers.GenFeed(cCtx, env.queries))
+			r.HandleFunc("POST /ui/gen", handlers.GenFeed(cCtx, env.queries))
+			r.HandleFunc("GET /ui/feeds", handlers.GetFeeds(cCtx, env.queries))
 			r.Handle("GET /ui/static/", http.StripPrefix("/ui/static/", handlers.Static()))
 			r.Handle("GET /ui/", handlers.Index())
 		})

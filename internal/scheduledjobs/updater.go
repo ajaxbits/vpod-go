@@ -49,7 +49,7 @@ func updateAll(
 	baseURL *url.URL,
 	queries *data.Queries,
 ) error {
-	ids, err := queries.GetAllFeeds(ctx)
+	ids, err := queries.GetAllFeedIds(ctx)
 	if err != nil {
 		logger.Error(
 			"could not get feeds from DB",

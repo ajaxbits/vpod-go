@@ -10,13 +10,13 @@ import (
 	"database/sql"
 )
 
-const getAllFeeds = `-- name: GetAllFeeds :many
+const getAllFeedIds = `-- name: GetAllFeedIds :many
 SELECT id
 FROM Feeds
 `
 
-func (q *Queries) GetAllFeeds(ctx context.Context) ([][]byte, error) {
-	rows, err := q.db.QueryContext(ctx, getAllFeeds)
+func (q *Queries) GetAllFeedIds(ctx context.Context) ([][]byte, error) {
+	rows, err := q.db.QueryContext(ctx, getAllFeedIds)
 	if err != nil {
 		return nil, err
 	}
@@ -28,6 +28,43 @@ func (q *Queries) GetAllFeeds(ctx context.Context) ([][]byte, error) {
 			return nil, err
 		}
 		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllFeeds = `-- name: GetAllFeeds :many
+SELECT id, created_at, description, title, updated_at, link, xml
+FROM Feeds
+LIMIT ?
+`
+
+func (q *Queries) GetAllFeeds(ctx context.Context, limit int64) ([]Feed, error) {
+	rows, err := q.db.QueryContext(ctx, getAllFeeds, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Feed
+	for rows.Next() {
+		var i Feed
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.Description,
+			&i.Title,
+			&i.UpdatedAt,
+			&i.Link,
+			&i.Xml,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err

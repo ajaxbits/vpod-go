@@ -54,7 +54,7 @@
   <body>
     <h1>Welcome to vpod</h1>
     <form
-      hx-post="/ui/gen/"
+      hx-post="/ui/gen"
       hx-trigger="submit"
       hx-target="#response-area"
       class="search-container"
@@ -70,5 +70,6 @@
     </form>
     <!-- Response will appear here -->
     <div id="response-area"></div>
+    <div id="feeds" hx-get="/ui/feeds" hx-target="this" hx-trigger="load" hx-swap="beforeend"></div>
   </body>
 </html>
