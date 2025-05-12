@@ -19,7 +19,7 @@ func list(
 	queries *data.Queries,
 ) (*[]FeedListEntry, error) {
 	logger.Info("Getting Feeds")
-	feeds, err := queries.GetAllFeeds(ctx, 10) // TODO: actually implement pagination
+	feeds, err := queries.GetAllFeeds(ctx, 100) // TODO: actually implement pagination
 	if err != nil {
 		return nil, err
 	}
