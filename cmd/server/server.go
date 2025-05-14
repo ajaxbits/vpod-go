@@ -36,9 +36,9 @@ func Serve(cCtx *cli.Context) error {
 	}
 	defer env.Cleanup()
 
-	auth := middleware.AuthInfo{
-		User: cCtx.String("user"),
-		Pass: cCtx.String("password"),
+	auth, err := middleware.NewAuthData(cCtx)
+	if err != nil {
+		return err
 	}
 
 	logger := env.logger
