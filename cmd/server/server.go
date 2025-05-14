@@ -55,7 +55,9 @@ func Serve(cCtx *cli.Context) error {
 		r.Handle("GET /gen/", handlers.GenFeedLegacy(cCtx, env.queries))
 
 		r.Group(func(r *Router) {
-			r.Use(middleware.NewBasicAuth(auth))
+			if !cCtx.Bool("no-auth") {
+				r.Use(middleware.NewBasicAuth(auth))
+			}
 
 			r.HandleFunc("POST /ui/gen", handlers.GenFeed(cCtx, env.queries))
 			r.HandleFunc("GET /ui/feeds", handlers.GetFeeds(cCtx, env.queries))

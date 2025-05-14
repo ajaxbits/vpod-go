@@ -30,34 +30,33 @@ func NewApp() *cli.App {
 				Usage:   "Log level for the program",
 				Value:   "INFO",
 			},
+			&cli.BoolFlag{
+				EnvVars: []string{"NO_AUTH"},
+				Name:    "no-auth",
+				Usage:   "Deactivate authentication for the frontend",
+				Value:   false,
+			},
 			&cli.StringFlag{
 				EnvVars: []string{"USER"},
 				Name:    "user",
 				Usage:   "Username for frontend auth",
 				Value:   "admin",
+				Action: func(ctx *cli.Context, val string) error {
+					if val == "" {
+						return fmt.Errorf("User cannot be empty")
+					}
+					return nil
+				},
 			},
-
 			&cli.StringFlag{
 				Name:    "password",
 				Usage:   "Password for frontend auth",
 				EnvVars: []string{"PASSWORD"},
-				Action: func(ctx *cli.Context, v string) error {
-					if ctx.String("password-file") != "" && v != "" {
-						return fmt.Errorf("Can only provide one of --password or --password-file")
-					}
-					return nil
-				},
 			},
 			&cli.StringFlag{
 				Name:    "password-file",
 				Usage:   "File containing the password for frontend auth",
 				EnvVars: []string{"PASSWORD_FILE"},
-				Action: func(ctx *cli.Context, v string) error {
-					if ctx.String("password") != "" && v != "" {
-						return fmt.Errorf("Can only provide one of --password or --password-file")
-					}
-					return nil
-				},
 			},
 			&cli.Uint64Flag{
 				Name:  "port",
@@ -72,6 +71,30 @@ func NewApp() *cli.App {
 					return nil
 				},
 			},
+		},
+		Before: func(ctx *cli.Context) error {
+			authEnabled := !ctx.Bool("no-auth")
+			passwordVal := ctx.String("password")
+			passwordFileVal := ctx.String("password-file")
+			userVal := ctx.String("user")
+
+			if authEnabled {
+				userEmpty := userVal == ""
+				userProvidedButNoPass := userVal != "" && passwordFileVal == "" && passwordVal == ""
+				bothPassFlagsSet := passwordVal != "" && passwordFileVal != ""
+
+				if userEmpty {
+					return fmt.Errorf("When auth is enabled, user cannot be empty.")
+				}
+				if userProvidedButNoPass {
+					return fmt.Errorf("Password is required when auth enabled and user specified.")
+				}
+				if bothPassFlagsSet {
+					return fmt.Errorf("Cannot set both a password and a password-file.")
+				}
+			}
+
+			return nil
 		},
 		Action: func(cCtx *cli.Context) error {
 			err := server.Serve(cCtx)
