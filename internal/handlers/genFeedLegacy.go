@@ -13,8 +13,8 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func GenFeedLegacy(cCtx *cli.Context, queries *data.Queries) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
+func GenFeedLegacy(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, "url", r.URL)
 		logger := ctx.Value("logger").(*slog.Logger)
@@ -58,5 +58,4 @@ func GenFeedLegacy(cCtx *cli.Context, queries *data.Queries) http.Handler {
 		logger.Debug("Feed successfully generated")
 		w.Write([]byte(feedURL.String()))
 	}
-	return http.HandlerFunc(fn)
 }

@@ -9,8 +9,8 @@ import (
 	"vpod/internal/data"
 )
 
-func FeedLegacy(queries *data.Queries) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
+func Feed(queries *data.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		logger := ctx.Value("logger").(*slog.Logger)
 
@@ -32,5 +32,4 @@ func FeedLegacy(queries *data.Queries) http.Handler {
 			w.Write([]byte(xml))
 		}
 	}
-	return http.HandlerFunc(fn)
 }

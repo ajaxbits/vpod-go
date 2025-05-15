@@ -1,4 +1,4 @@
-package server
+package router
 
 import (
 	"net/http"
@@ -53,7 +53,7 @@ func TestRouter(t *testing.T) {
 
 	hf := func(w http.ResponseWriter, r *http.Request) {}
 
-	r := NewRouter()
+	r := New()
 	r.Use(mw1)
 	r.Use(mw2)
 

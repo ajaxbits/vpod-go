@@ -1,13 +1,16 @@
-package server
+package main
 
 import (
 	"fmt"
 	"log"
 	"log/slog"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 	"vpod/internal/handlers"
 	"vpod/internal/middleware"
+	"vpod/internal/router"
 
 	"github.com/urfave/cli/v2"
 )
@@ -26,7 +29,7 @@ func panicHandler(logger *slog.Logger) func(http.Handler) http.Handler {
 	}
 }
 
-func Serve(cCtx *cli.Context) error {
+func serve(cCtx *cli.Context) error {
 	env, err := NewEnv(
 		cCtx.String("log-level"),
 		cCtx.String("base-url"),
@@ -36,33 +39,41 @@ func Serve(cCtx *cli.Context) error {
 	}
 	defer env.Cleanup()
 
-	auth, err := middleware.NewAuthData(cCtx)
-	if err != nil {
-		return err
-	}
-
 	logger := env.logger
 	logger.Debug("Env initalized")
 
-	r := NewRouter()
-	r.Use(middleware.NewLogging(logger))
+	wantedUser := cCtx.String("user")
+	var wantedPass string
+	if cCtx.String("password-file") != "" {
+		path := cCtx.String("password-file")
+		contents, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		wantedPass = strings.TrimSpace(string(contents))
+	} else {
+		wantedPass = cCtx.String("password")
+	}
+
+	r := router.New()
+	r.Use(middleware.LogRequest(logger))
 	r.Use(panicHandler(logger))
 
-	r.Group(func(r *Router) {
-		// TODO handlerFunc
-		r.Handle("GET /audio/", handlers.Audio())
-		r.Handle("GET /feed/", handlers.FeedLegacy(env.queries))
-		r.Handle("GET /gen/", handlers.GenFeedLegacy(cCtx, env.queries))
+	r.Group(func(r *router.Router) {
+		r.HandleFunc("GET /audio/", handlers.Audio())
+		r.HandleFunc("GET /feed/", handlers.Feed(env.queries))
+		r.HandleFunc("GET /gen/", handlers.GenFeedLegacy(cCtx, env.queries))
 
-		r.Group(func(r *Router) {
+		r.Group(func(r *router.Router) {
 			if !cCtx.Bool("no-auth") {
-				r.Use(middleware.NewBasicAuth(auth))
+				r.Use(middleware.NewBasicAuth(&wantedUser, &wantedPass))
 			}
 
 			r.HandleFunc("POST /ui/gen", handlers.GenFeed(cCtx, env.queries))
 			r.HandleFunc("GET /ui/feeds", handlers.GetFeeds(cCtx, env.queries))
+			// TODO: improve
 			r.Handle("GET /ui/static/", http.StripPrefix("/ui/static/", handlers.Static()))
-			r.Handle("GET /ui/", handlers.Index())
+			r.HandleFunc("GET /ui/", handlers.Index())
 		})
 	})
 
