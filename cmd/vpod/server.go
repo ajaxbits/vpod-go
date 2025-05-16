@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"vpod/internal/api"
 	"vpod/internal/handlers"
 	"vpod/internal/middleware"
 	"vpod/internal/router"
@@ -62,6 +63,7 @@ func serve(cCtx *cli.Context) error {
 	r.HandleFunc("GET /audio/", handlers.Audio())
 	r.HandleFunc("GET /feed/", handlers.Feed(env.queries))
 
+	r.Group("/api", api.Routes)
 	r.Group("/ui", func(r *router.Router) {
 		if !cCtx.Bool("no-auth") {
 			r.Use(middleware.NewBasicAuth(&wantedUser, &wantedPass))
@@ -70,6 +72,7 @@ func serve(cCtx *cli.Context) error {
 		// The trailing slash is important here
 		// TODO: revisit after embeddings
 		r.Handle("GET /static/", handlers.Static())
+
 		r.HandleFunc("GET /", handlers.Index())
 		r.HandleFunc("GET /feeds", handlers.GetFeeds(cCtx, env.queries))
 		r.HandleFunc("POST /gen", handlers.GenFeed(cCtx, env.queries))

@@ -1,4 +1,4 @@
-package handlers
+package api
 
 import (
 	"context"
@@ -13,7 +13,11 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func GenFeedLegacy(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
+func GenFeed(w http.ResponseWriter, r *http.Request) {
+	return
+}
+
+func genFeed(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, "url", r.URL)
