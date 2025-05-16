@@ -1,25 +1,17 @@
-<h1>Your Podcasts</h1>
-<table>
-  <thead>
-    <tr>
-      <th>Title</th>
-      <th>Description</th>
-      <th>Last Updated</th>
-      <!-- TODO -->
-      <!-- <th>Number of Episodes</th> -->
-      <th>Feed URL</th>
-    </tr>
-  </thead>
-  <tbody>
-    {{ range . }}
-    <tr>
-      <td><a href="{{ .ChannelURL }}">{{ .Title }}</a></td>
-      <td>{{ .Description }}</td>
-      <td>{{ .LastUpdated.Format "2006-01-02 15:04:05" }}</td>
-      <!-- TODO -->
-      <!-- <td>{{ .NumEps }}</td> -->
-      <td><a href="{{ .URL }}">RSS</a></td>
-    </tr>
-    {{ end }}
-  </tbody>
-</table>
+{{ range .Entries }}
+<tr>
+  <td><a href="{{ .ChannelURL }}">{{ .Title }}</a></td>
+  <td>{{ .Description }}</td>
+  <td>{{ .LastUpdated.Format "2006-01-02 15:04:05" }}</td>
+  <!-- TODO -->
+  <!-- <td>{{ .NumEps }}</td> -->
+  <td><a href="{{ .URL }}">RSS</a></td>
+</tr>
+{{ end }}
+<tr id="loadMore">
+  <td colspan="4">
+    <button hx-get="/ui/feeds?page={{ .Page }}" hx-target="#loadMore" hx-swap="outerHTML">
+      Load more feeds...
+    </button>
+  </td>
+</tr>

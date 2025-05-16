@@ -50,13 +50,17 @@ func GetFeeds(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
 			return
 		}
 
-		data, err := list(ctx, baseURL, logger, queries)
+		entries, err := list(ctx, baseURL, logger, queries)
 		if err != nil {
 			logger.With(slog.String("err", err.Error())).Error("Something went wrong when getting all the feeds.")
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 
+		data := FeedListData{
+			Entries: *entries,
+			Page:    1, // TODO: find out how to increment
+		}
 		// Path is relative to where command runs
 		tmpl := template.Must(template.ParseFiles("internal/views/feedList.html"))
 		err = tmpl.Execute(w, data)
@@ -67,6 +71,11 @@ func GetFeeds(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
 		}
 	}
 	return http.HandlerFunc(fn)
+}
+
+type FeedListData struct {
+	Entries []FeedListEntry
+	Page    int
 }
 
 type FeedListEntry struct {

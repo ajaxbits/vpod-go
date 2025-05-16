@@ -70,6 +70,19 @@
     </form>
     <!-- Response will appear here -->
     <div id="response-area"></div>
-    <div id="feeds" hx-get="/ui/feeds" hx-target="this" hx-trigger="load" hx-swap="beforeend"></div>
+    <h1>Your Podcasts</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Description</th>
+          <th>Last Updated</th>
+          <!-- TODO -->
+          <!-- <th>Number of Episodes</th> -->
+          <th>Feed URL</th>
+        </tr>
+      </thead>
+      <tbody id="feeds" hx-get="/ui/feeds" hx-target="this" hx-trigger="load" hx-swap="beforeend"></tbody>
+    </table>
   </body>
 </html>
