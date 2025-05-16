@@ -1,14 +1,17 @@
 package router
 
 import (
+	"fmt"
 	"net/http"
 	"slices"
+	"strings"
 )
 
 type Router struct {
 	globalChain []func(http.Handler) http.Handler
-	routeChain  []func(http.Handler) http.Handler
 	isSubRouter bool
+	path        string
+	routeChain  []func(http.Handler) http.Handler
 	*http.ServeMux
 }
 
@@ -24,8 +27,13 @@ func (r *Router) Use(mw ...func(http.Handler) http.Handler) {
 	}
 }
 
-func (r *Router) Group(fn func(r *Router)) {
-	subRouter := &Router{routeChain: slices.Clone(r.routeChain), isSubRouter: true, ServeMux: r.ServeMux}
+func (r *Router) Group(prefix string, fn func(r *Router)) {
+	subRouter := &Router{
+		routeChain:  slices.Clone(r.routeChain),
+		isSubRouter: true,
+		path:        r.path + prefix,
+		ServeMux:    r.ServeMux,
+	}
 	fn(subRouter)
 }
 
@@ -34,10 +42,30 @@ func (r *Router) HandleFunc(pattern string, h http.HandlerFunc) {
 }
 
 func (r *Router) Handle(pattern string, h http.Handler) {
+	methods := []string{
+		http.MethodConnect,
+		http.MethodDelete,
+		http.MethodGet,
+		http.MethodHead,
+		http.MethodOptions,
+		http.MethodPatch,
+		http.MethodPost,
+		http.MethodPut,
+		http.MethodTrace,
+	}
+
+	p := pattern
+	for _, m := range methods {
+		if strings.HasPrefix(p, string(m)) {
+			fullPath := r.path + strings.TrimSpace(strings.TrimPrefix(p, m))
+			p = fmt.Sprintf("%s %s", m, fullPath)
+		}
+	}
+
 	for _, mw := range slices.Backward(r.routeChain) {
 		h = mw(h)
 	}
-	r.ServeMux.Handle(pattern, h)
+	r.ServeMux.Handle(p, h)
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, rq *http.Request) {

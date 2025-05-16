@@ -59,17 +59,17 @@ func TestRouter(t *testing.T) {
 
 	r.HandleFunc("GET /{$}", hf)
 
-	r.Group(func(r *Router) {
+	r.Group("", func(r *Router) {
 		r.Use(mw3, mw4)
 		r.HandleFunc("GET /foo", hf)
 
-		r.Group(func(r *Router) {
+		r.Group("/nested", func(r *Router) {
 			r.Use(mw5)
-			r.HandleFunc("GET /nested/foo", hf)
+			r.HandleFunc("GET /foo", hf)
 		})
 	})
 
-	r.Group(func(r *Router) {
+	r.Group("", func(r *Router) {
 		r.Use(mw6)
 		r.HandleFunc("GET /bar", hf)
 	})
