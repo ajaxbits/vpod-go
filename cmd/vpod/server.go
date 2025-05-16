@@ -59,22 +59,20 @@ func serve(cCtx *cli.Context) error {
 	r.Use(middleware.LogRequest(logger))
 	r.Use(panicHandler(logger))
 
-	r.Group(func(r *router.Router) {
-		r.HandleFunc("GET /audio/", handlers.Audio())
-		r.HandleFunc("GET /feed/", handlers.Feed(env.queries))
-		r.HandleFunc("GET /gen/", handlers.GenFeedLegacy(cCtx, env.queries))
+	r.HandleFunc("GET /audio/", handlers.Audio())
+	r.HandleFunc("GET /feed/", handlers.Feed(env.queries))
 
-		r.Group(func(r *router.Router) {
-			if !cCtx.Bool("no-auth") {
-				r.Use(middleware.NewBasicAuth(&wantedUser, &wantedPass))
-			}
+	r.Group("/ui", func(r *router.Router) {
+		if !cCtx.Bool("no-auth") {
+			r.Use(middleware.NewBasicAuth(&wantedUser, &wantedPass))
+		}
 
-			r.HandleFunc("POST /ui/gen", handlers.GenFeed(cCtx, env.queries))
-			r.HandleFunc("GET /ui/feeds", handlers.GetFeeds(cCtx, env.queries))
-			// TODO: improve
-			r.Handle("GET /ui/static/", http.StripPrefix("/ui/static/", handlers.Static()))
-			r.HandleFunc("GET /ui/", handlers.Index())
-		})
+		// The trailing slash is important here
+		// TODO: revisit after embeddings
+		r.Handle("GET /static/", handlers.Static())
+		r.HandleFunc("GET /", handlers.Index())
+		r.HandleFunc("GET /feeds", handlers.GetFeeds(cCtx, env.queries))
+		r.HandleFunc("POST /gen", handlers.GenFeed(cCtx, env.queries))
 	})
 
 	address := fmt.Sprintf("%s:%d", cCtx.String("host"), cCtx.Uint64("port"))

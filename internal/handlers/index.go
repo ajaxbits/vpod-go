@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 )
 
@@ -11,10 +10,12 @@ func Index() http.HandlerFunc {
 	}
 }
 
-func Static() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println(r.URL)
-		staticDir := "./internal/views/static"
-		http.FileServer(http.Dir(staticDir)).ServeHTTP(w, r)
+func Static() http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		// TODO embed
+		staticDir := "./internal/views/static/"
+		fs := http.FileServer(http.Dir(staticDir))
+		fs.ServeHTTP(w, r)
 	}
+	return http.StripPrefix("/ui/static/", http.HandlerFunc(fn))
 }
