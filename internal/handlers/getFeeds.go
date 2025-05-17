@@ -6,20 +6,47 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 	"vpod/internal/data"
 
 	"github.com/urfave/cli/v2"
 )
 
+const PAGESIZE = 10
+
+func getFeedPage(q *data.Queries, ctx context.Context, pageNumber uint64) ([]data.Feed, error) {
+	params := data.GetAllFeedsParams{
+		Limit:   PAGESIZE,
+		Column2: pageNumber,
+	}
+	return q.GetAllFeeds(ctx, params)
+}
+
+// TODO unit test babyyyyy
+func getPage(u *url.URL) (uint64, error) {
+	pageStr := u.Query().Get("page")
+	if pageStr == "" {
+		pageStr = "1"
+	}
+
+	page, err := strconv.ParseUint(pageStr, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return page, nil
+}
+
 func list(
 	ctx context.Context,
 	baseURL *url.URL,
 	logger *slog.Logger,
 	queries *data.Queries,
+	page uint64,
 ) (*[]FeedListEntry, error) {
 	logger.Info("Getting Feeds")
-	feeds, err := queries.GetAllFeeds(ctx, 100) // TODO: actually implement pagination
+	feeds, err := getFeedPage(queries, ctx, page)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +77,14 @@ func GetFeeds(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
 			return
 		}
 
-		entries, err := list(ctx, baseURL, logger, queries)
+		page, err := getPage(r.URL)
+		if err != nil {
+			logger.With(slog.String("err", err.Error())).Error("Something went wrong when getting all the feeds.")
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		entries, err := list(ctx, baseURL, logger, queries, page)
 		if err != nil {
 			logger.With(slog.String("err", err.Error())).Error("Something went wrong when getting all the feeds.")
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -58,8 +92,8 @@ func GetFeeds(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
 		}
 
 		data := FeedListData{
-			Entries: *entries,
-			Page:    1, // TODO: find out how to increment
+			Entries:  *entries,
+			NextPage: page + 1,
 		}
 		// Path is relative to where command runs
 		tmpl := template.Must(template.ParseFiles("internal/views/feedList.html"))
@@ -74,8 +108,8 @@ func GetFeeds(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
 }
 
 type FeedListData struct {
-	Entries []FeedListEntry
-	Page    int
+	Entries  []FeedListEntry
+	NextPage uint64
 }
 
 type FeedListEntry struct {

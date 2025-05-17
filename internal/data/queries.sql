@@ -78,4 +78,5 @@ FROM Feeds;
 -- name: GetAllFeeds :many
 SELECT *
 FROM Feeds
-LIMIT ?;
+LIMIT ?1
+OFFSET (?2 - 1) * ?1;

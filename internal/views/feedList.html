@@ -10,7 +10,7 @@
 {{ end }}
 <tr id="loadMore">
   <td colspan="4">
-    <button hx-get="/ui/feeds?page={{ .Page }}" hx-target="#loadMore" hx-swap="outerHTML">
+    <button hx-get="/ui/feeds?page={{ .NextPage }}" hx-target="#loadMore" hx-swap="outerHTML">
       Load more feeds...
     </button>
   </td>

@@ -15,3 +15,6 @@ build-image:
 
 run-image: build-image
     docker run --rm -it $(docker load < result | hck -f 3)
+
+sqlc-generate:
+    sqlc generate --file ./internal/data/sqlc.yaml

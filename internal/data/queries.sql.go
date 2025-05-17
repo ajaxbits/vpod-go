@@ -41,11 +41,17 @@ func (q *Queries) GetAllFeedIds(ctx context.Context) ([][]byte, error) {
 const getAllFeeds = `-- name: GetAllFeeds :many
 SELECT id, created_at, description, title, updated_at, link, xml
 FROM Feeds
-LIMIT ?
+LIMIT ?1
+OFFSET (?2 - 1) * ?1
 `
 
-func (q *Queries) GetAllFeeds(ctx context.Context, limit int64) ([]Feed, error) {
-	rows, err := q.db.QueryContext(ctx, getAllFeeds, limit)
+type GetAllFeedsParams struct {
+	Limit   int64
+	Column2 interface{}
+}
+
+func (q *Queries) GetAllFeeds(ctx context.Context, arg GetAllFeedsParams) ([]Feed, error) {
+	rows, err := q.db.QueryContext(ctx, getAllFeeds, arg.Limit, arg.Column2)
 	if err != nil {
 		return nil, err
 	}
