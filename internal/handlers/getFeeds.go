@@ -13,11 +13,9 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-const PAGESIZE = 10
-
-func getFeedPage(q *data.Queries, ctx context.Context, pageNumber uint64) ([]data.Feed, error) {
+func getFeedPage(q *data.Queries, ctx context.Context, pageSize uint, pageNumber uint64) ([]data.GetAllFeedsRow, error) {
 	params := data.GetAllFeedsParams{
-		Limit:   PAGESIZE,
+		Column1: int64(pageSize),
 		Column2: pageNumber,
 	}
 	return q.GetAllFeeds(ctx, params)
@@ -38,31 +36,39 @@ func getPage(u *url.URL) (uint64, error) {
 	return page, nil
 }
 
-func list(
+func getFeedListEntries(
 	ctx context.Context,
 	baseURL *url.URL,
 	logger *slog.Logger,
 	queries *data.Queries,
-	page uint64,
-) (*[]FeedListEntry, error) {
+	pageSize uint,
+	pageNum uint64,
+) (*[]FeedListEntry, uint64, error) {
 	logger.Info("Getting Feeds")
-	feeds, err := getFeedPage(queries, ctx, page)
+
+	nextPage := uint64(0)
+	rows, err := getFeedPage(queries, ctx, pageSize, pageNum)
 	if err != nil {
-		return nil, err
+		return nil, nextPage, err
 	}
 
-	feedListEntries := make([]FeedListEntry, 0, len(feeds))
-	for _, feed := range feeds {
-		feedListEntries = append(feedListEntries, FeedListEntry{
-			ChannelURL:  feed.Link,
-			Description: feed.Description.String,
-			LastUpdated: feed.UpdatedAt.Time,
-			NumEps:      0, // TODO
-			Title:       feed.Title,
-			URL:         baseURL.JoinPath("feed", string(feed.ID)).String(),
-		})
+	feedListEntries := make([]FeedListEntry, 0, len(rows))
+	if len(rows) > 0 {
+		for _, row := range rows {
+			feedListEntries = append(feedListEntries, FeedListEntry{
+				ChannelURL:  row.Link,
+				Description: row.Description.String,
+				LastUpdated: row.UpdatedAt.Time,
+				NumEps:      0, // TODO
+				Title:       row.Title,
+				URL:         baseURL.JoinPath("feed", string(row.ID)).String(),
+			})
+		}
+		if rows[0].HasMore {
+			nextPage = pageNum + 1
+		}
 	}
-	return &feedListEntries, nil
+	return &feedListEntries, nextPage, nil
 }
 
 func GetFeeds(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
@@ -79,12 +85,13 @@ func GetFeeds(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
 
 		page, err := getPage(r.URL)
 		if err != nil {
-			logger.With(slog.String("err", err.Error())).Error("Something went wrong when getting all the feeds.")
+			logger.With(slog.String("err", err.Error())).Error("Something went wrong when getting the page number from the url.")
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 
-		entries, err := list(ctx, baseURL, logger, queries, page)
+		pageSize := uint(10)
+		entries, nextPage, err := getFeedListEntries(ctx, baseURL, logger, queries, pageSize, page)
 		if err != nil {
 			logger.With(slog.String("err", err.Error())).Error("Something went wrong when getting all the feeds.")
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -93,7 +100,7 @@ func GetFeeds(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
 
 		data := FeedListData{
 			Entries:  *entries,
-			NextPage: page + 1,
+			NextPage: nextPage,
 		}
 		// Path is relative to where command runs
 		tmpl := template.Must(template.ParseFiles("internal/views/feedList.html"))
@@ -109,7 +116,7 @@ func GetFeeds(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
 
 type FeedListData struct {
 	Entries  []FeedListEntry
-	NextPage uint64
+	NextPage uint64 // 0 means no next page
 }
 
 type FeedListEntry struct {

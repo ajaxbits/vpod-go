@@ -39,26 +39,47 @@ func (q *Queries) GetAllFeedIds(ctx context.Context) ([][]byte, error) {
 }
 
 const getAllFeeds = `-- name: GetAllFeeds :many
-SELECT id, created_at, description, title, updated_at, link, xml
-FROM Feeds
-LIMIT ?1
-OFFSET (?2 - 1) * ?1
+WITH FeedData AS (
+    SELECT id, created_at, description, title, updated_at, link, xml
+    FROM Feeds
+    LIMIT ?1
+    OFFSET (?2 - 1) * ?1
+),
+TotalCount AS (
+    SELECT COUNT(*) AS total_rows
+    FROM Feeds
+)
+SELECT fd.id, fd.created_at, fd.description, fd.title, fd.updated_at, fd.link, fd.xml,
+       (SELECT total_rows > (?2 * ?1) FROM TotalCount) AS has_more
+FROM FeedData fd
 `
 
 type GetAllFeedsParams struct {
-	Limit   int64
+	Column1 interface{}
 	Column2 interface{}
 }
 
-func (q *Queries) GetAllFeeds(ctx context.Context, arg GetAllFeedsParams) ([]Feed, error) {
-	rows, err := q.db.QueryContext(ctx, getAllFeeds, arg.Limit, arg.Column2)
+type GetAllFeedsRow struct {
+	ID          []byte
+	CreatedAt   sql.NullTime
+	Description sql.NullString
+	Title       string
+	UpdatedAt   sql.NullTime
+	Link        string
+	Xml         string
+	HasMore     bool
+}
+
+// ?1 is pageSize ?2 is pageNum
+func (q *Queries) GetAllFeeds(ctx context.Context, arg GetAllFeedsParams) ([]GetAllFeedsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllFeeds, arg.Column1, arg.Column2)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Feed
+	var items []GetAllFeedsRow
 	for rows.Next() {
-		var i Feed
+		var i GetAllFeedsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.CreatedAt,
@@ -67,6 +88,7 @@ func (q *Queries) GetAllFeeds(ctx context.Context, arg GetAllFeedsParams) ([]Fee
 			&i.UpdatedAt,
 			&i.Link,
 			&i.Xml,
+			&i.HasMore,
 		); err != nil {
 			return nil, err
 		}

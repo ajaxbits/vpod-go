@@ -76,7 +76,17 @@ SELECT id
 FROM Feeds;
 
 -- name: GetAllFeeds :many
-SELECT *
-FROM Feeds
-LIMIT ?1
-OFFSET (?2 - 1) * ?1;
+-- ?1 is pageSize ?2 is pageNum
+WITH FeedData AS (
+    SELECT *
+    FROM Feeds
+    LIMIT ?1
+    OFFSET (?2 - 1) * ?1
+),
+TotalCount AS (
+    SELECT COUNT(*) AS total_rows
+    FROM Feeds
+)
+SELECT fd.*,
+       (SELECT total_rows > (?2 * ?1) FROM TotalCount) AS has_more
+FROM FeedData fd;

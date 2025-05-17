@@ -8,6 +8,7 @@
   <td><a href="{{ .URL }}">RSS</a></td>
 </tr>
 {{ end }}
+{{ if gt .NextPage 0 }}
 <tr id="loadMore">
   <td colspan="4">
     <button hx-get="/ui/feeds?page={{ .NextPage }}" hx-target="#loadMore" hx-swap="outerHTML">
@@ -15,3 +16,4 @@
     </button>
   </td>
 </tr>
+{{ end }}
