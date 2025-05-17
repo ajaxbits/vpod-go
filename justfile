@@ -18,3 +18,6 @@ run-image: build-image
 
 sqlc-generate:
     sqlc generate --file ./internal/data/sqlc.yaml
+
+dev:
+    go run ./... --base-url=http://localhost:3000 --port 3000 --no-auth
