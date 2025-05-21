@@ -14,7 +14,12 @@ func (p Podcast) AppendOldEps(ctx context.Context) (*Podcast, error) {
 		return nil, errors.New("could not get queries from ctx")
 	}
 
-	latestEp := p.Items[len(p.Items)-1]
+	numItems := len(p.Items)
+	if numItems < 1 {
+		return nil, errors.New("detected 0 episodes in feed")
+	}
+
+	latestEp := p.Items[numItems-1]
 
 	oldEps, err := queries.GetOlderEpisodesForFeed(ctx, data.GetOlderEpisodesForFeedParams{
 		FeedID: p.Id,
