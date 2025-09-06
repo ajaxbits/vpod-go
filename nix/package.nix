@@ -13,7 +13,6 @@ let
   excludes = fs.unions [
     ../justfile
     ../nix
-    ../vector.yaml
   ];
   fileset = fs.difference gitFiles excludes;
   src = fs.toSource {
@@ -28,6 +27,8 @@ buildGoModule {
   vendorHash = "sha256-+ZGm7y7wuukivXBf7cEhJBSJszxTDbqch4Jmyi9mB7M=";
 
   nativeBuildInputs = [ makeWrapper ];
+  postInstall = ''
+    install -Dm644 $src/vector.yaml $out/etc/vector.yaml
   '';
   postFixup = ''
     wrapProgram $out/bin/${name} \
