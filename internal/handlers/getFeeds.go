@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 	"vpod/internal/data"
+	"vpod/internal/views"
 
 	"github.com/urfave/cli/v2"
 )
@@ -103,7 +104,7 @@ func GetFeeds(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
 			NextPage: nextPage,
 		}
 		// Path is relative to where command runs
-		tmpl := template.Must(template.ParseFiles("internal/views/feedList.html"))
+		tmpl := template.Must(template.ParseFS(views.ViewFS, "feedList.html"))
 		err = tmpl.Execute(w, data)
 		if err != nil {
 			logger.With(slog.String("err", err.Error())).Error("Failed to execute feedList template")

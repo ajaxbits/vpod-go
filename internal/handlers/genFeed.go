@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"vpod/internal/data"
 	"vpod/internal/podcast"
+	"vpod/internal/views"
 	"vpod/internal/youtube"
 
 	"github.com/urfave/cli/v2"
@@ -85,7 +86,7 @@ func GenFeed(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
 			URLPathEscaped: url.PathEscape(u.String()),
 		}
 		// Path is relative to where command runs
-		tmpl := template.Must(template.ParseFiles("internal/views/podcastSuccess.html"))
+		tmpl := template.Must(template.ParseFS(views.ViewFS, "podcastSuccess.html"))
 		tmpl.Execute(w, data)
 	}
 	return http.HandlerFunc(fn)
