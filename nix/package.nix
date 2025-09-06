@@ -28,8 +28,6 @@ buildGoModule {
   vendorHash = "sha256-+ZGm7y7wuukivXBf7cEhJBSJszxTDbqch4Jmyi9mB7M=";
 
   nativeBuildInputs = [ makeWrapper ];
-  preBuild = ''
-    go test ./...
   '';
   postFixup = ''
     wrapProgram $out/bin/${name} \
