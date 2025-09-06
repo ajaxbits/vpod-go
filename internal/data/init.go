@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	_ "embed"
+	"os"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -13,6 +14,13 @@ import (
 var DDL string
 
 func Initialize(ctx context.Context) (*sql.DB, *Queries, error) {
+	const dbPath = "./podcasts.db"
+	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+		if _, err := os.Create(dbPath); err != nil {
+			return nil, nil, err
+		}
+	}
+
 	db, err := sql.Open("sqlite3", "./podcasts.db")
 	if err != nil {
 		return nil, nil, err
