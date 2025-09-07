@@ -5,7 +5,10 @@
   <td>{{ .LastUpdated.Format "2006-01-02 15:04:05" }}</td>
   <!-- TODO -->
   <!-- <td>{{ .NumEps }}</td> -->
-  <td><a href="{{ .URL }}">RSS</a></td>
+  <td>
+    <a href="{{ .URL }}">RSS</a><br>
+    <a href="overcast://x-callback-url/add?url={{ .URL }}">Overcast</a>
+  </td>
 </tr>
 {{ end }}
 {{ if gt .NextPage 0 }}
