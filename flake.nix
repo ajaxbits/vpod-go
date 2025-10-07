@@ -2,7 +2,7 @@
   description = "vpod -- beware the YouTube to podcast feed pipeline";
   inputs = {
     flake-parts.url = "github:hercules-ci/flake-parts";
-    yt-dlp.url = "github:NixOS/nixpkgs/master";
+    yt-dlp.url = "github:ajaxbits/yt-dlp-flake";
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   };
 
@@ -48,8 +48,8 @@
             ...
           }:
           let
-            inherit (import inputs.yt-dlp { inherit system; }) yt-dlp;
             inherit (pkgs) sqlite;
+            yt-dlp = inputs.yt-dlp.packages.${system}.default;
 
             name = "vpod";
             runtimeDeps = [
