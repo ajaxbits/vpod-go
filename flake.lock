@@ -187,15 +187,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1759847765,
-        "narHash": "sha256-5jZOQUmdPF3m6sXe58bqvGplPYdCDU+NoJj0W5zo2qQ=",
+        "lastModified": 1761221489,
+        "narHash": "sha256-/zca115n1ivUGcyHZUJNP1bXwDtBxVqSUxragaBUaKs=",
         "owner": "ajaxbits",
         "repo": "yt-dlp-flake",
-        "rev": "0c39b33fa3a118fa3f7e27c879406b6a612ce076",
+        "rev": "4361c7e86cf6e989ee7e42e82cb0469a8384fde7",
         "type": "github"
       },
       "original": {
         "owner": "ajaxbits",
+        "ref": "nightly",
         "repo": "yt-dlp-flake",
         "type": "github"
       }
