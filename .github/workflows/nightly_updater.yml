@@ -1,0 +1,29 @@
+name: Update yt_dlp
+on:
+  workflow_dispatch: # allows manual triggering
+  schedule:
+    - cron: '0 0 * * *' # runs every day at 00:00
+
+jobs:
+  lockfile:
+    permissions:
+      contents: write
+      id-token: write
+      issues: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+      - name: Update flake.lock
+        uses: DeterminateSystems/update-flake-lock@main
+        with:
+          inputs: "yt-dlp"
+          pr-title: "chore: update `yt_dlp`" # Title of PR to be created
+          pr-labels: |                  # Labels to be set on the PR
+            automated
+          pr-assignees: "ajaxbits"
+          pr-reviewers: "ajaxbits"
+          nix-options: "--accept-flake-config"
