@@ -182,11 +182,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1761320063,
-        "narHash": "sha256-/zca115n1ivUGcyHZUJNP1bXwDtBxVqSUxragaBUaKs=",
+        "lastModified": 1761739977,
+        "narHash": "sha256-ihT0cJhS0aBMqEITaQ20d9c4lnS53G6fWk2Bc7tua9I=",
         "owner": "ajaxbits",
         "repo": "yt-dlp-flake",
-        "rev": "db8ee143ae50912a9afc0a81799ae3df13926ec9",
+        "rev": "da84f6893d14a509c31066b5c0a66de6db93af62",
         "type": "github"
       },
       "original": {
