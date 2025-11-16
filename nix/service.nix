@@ -7,24 +7,19 @@
 let
   inherit (lib) types;
   inherit (lib.attrsets) optionalAttrs;
-  inherit (lib.lists) elemAt;
   inherit (lib.meta) getExe;
   inherit (lib.modules) mkIf;
   inherit (lib.options) mkOption mkEnableOption;
-  inherit (lib.strings) optionalString splitString;
+  inherit (lib.strings) optionalString;
 
   cfg = config.services.vpod;
 
-  lokicfg = config.services.loki;
-  vlcfg = config.services.victorialogs;
+  vlenabled = cfg.settings.monitoring.victoriaLogsEndpoint != "";
 
   vpod = getExe cfg.package;
   vector = getExe pkgs.vector;
   startScript = pkgs.writeShellScript "vpod-start" (
-    vpod
-    + optionalString (
-      lokicfg.enable && vlcfg.enable
-    ) "| ${vector} --config ${cfg.settings.monitoring.vectorConfigPath}"
+    vpod + optionalString vlenabled "| ${vector} --config ${cfg.settings.monitoring.vectorConfigPath}"
   );
 in
 {
@@ -65,6 +60,11 @@ in
       };
 
       monitoring = {
+        victoriaLogsEndpoint = mkOption {
+          type = types.str;
+          default = "";
+          description = "URL for VictoriaLogs endpoint.";
+        };
         vectorConfigPath = mkOption {
           type = types.path;
           default = "${cfg.package}/etc/vector.yaml";
@@ -126,21 +126,9 @@ in
           PORT = builtins.toString cfg.settings.port;
           USER = cfg.settings.frontend.user;
         }
-        // optionalAttrs (lokicfg.enable && vlcfg.enable) (
-          let
-            lokiAddr = lokicfg.configuration.server.http_listen_address or "";
-            lokiPort = builtins.toString lokicfg.configuration.server.http_listen_port;
-            lokiUrl = if lokiAddr != "" then "${lokiAddr}:${lokiPort}" else "http://0.0.0.0:${lokiPort}";
-
-            vlogsParts = splitString ":" vlcfg.listenAddress;
-            vlogsUrl =
-              if (elemAt vlogsParts 0 == "") then "http://0.0.0.0${vlcfg.listenAddress}" else vlcfg.listenAddress;
-          in
-          {
-            LOKI = lokiUrl;
-            VLOGS = vlogsUrl;
-          }
-        );
+        // optionalAttrs vlenabled {
+          VLOGS = cfg.settings.monitoring.victoriaLogsEndpoint;
+        };
     };
   };
 }
