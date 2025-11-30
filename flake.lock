@@ -172,21 +172,33 @@
         "type": "github"
       }
     },
+    "unstable": {
+      "locked": {
+        "lastModified": 1764242076,
+        "narHash": "sha256-sKoIWfnijJ0+9e4wRvIgm/HgE27bzwQxcEmo2J/gNpI=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "2fad6eac6077f03fe109c4d4eb171cf96791faa4",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "yt-dlp": {
       "inputs": {
         "dream2nix": "dream2nix",
-        "nixpkgs": [
-          "yt-dlp",
-          "dream2nix",
-          "nixpkgs"
-        ]
+        "unstable": "unstable"
       },
       "locked": {
-        "lastModified": 1764523647,
-        "narHash": "sha256-z3EY42lCj6heNgfZ9/mFylAlDxjebMRMZRjj7a4AFuw=",
+        "lastModified": 1764529786,
+        "narHash": "sha256-eTR6r3bWjGUPiQifqodx0yR0tT7ukeT2zPvL1jyOJAk=",
         "owner": "ajaxbits",
         "repo": "yt-dlp-flake",
-        "rev": "f977dac0216545fa50cce93ec35911cb16db6577",
+        "rev": "c6d666435fa9bb35e71241192b0e0b3698f3d75b",
         "type": "github"
       },
       "original": {
