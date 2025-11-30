@@ -2,7 +2,7 @@
   description = "vpod -- beware the YouTube to podcast feed pipeline";
   inputs = {
     flake-parts.url = "github:hercules-ci/flake-parts";
-    yt-dlp.url = "github:ajaxbits/yt-dlp-flake/nightly";
+    yt-dlp.url = "github:ajaxbits/yt-dlp-flake";
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   };
 
