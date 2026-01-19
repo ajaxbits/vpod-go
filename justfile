@@ -1,3 +1,7 @@
+[private]
+default:
+  @just --list
+
 build:
     nom build .#
 
