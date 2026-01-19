@@ -14,27 +14,33 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func getFeedPage(q *data.Queries, ctx context.Context, pageSize uint, pageNumber uint64) ([]data.GetAllFeedsRow, error) {
+func getFeedPage(q *data.Queries, ctx context.Context, pageSize uint, pageNumber uint64, sort string) ([]data.GetAllFeedsRow, error) {
 	params := data.GetAllFeedsParams{
-		Column1: int64(pageSize),
-		Column2: pageNumber,
+		Limit:     int64(pageSize),
+		Page:      int64(pageNumber),
+		SortOrder: sort,
 	}
 	return q.GetAllFeeds(ctx, params)
 }
 
 // TODO unit test babyyyyy
-func getPage(u *url.URL) (uint64, error) {
+func getPage(u *url.URL) (uint64, string, error) {
 	pageStr := u.Query().Get("page")
 	if pageStr == "" {
 		pageStr = "1"
 	}
 
-	page, err := strconv.ParseUint(pageStr, 10, 64)
-	if err != nil {
-		return 0, err
+	sort := u.Query().Get("sort")
+	if sort == "" {
+		sort = "newest"
 	}
 
-	return page, nil
+	page, err := strconv.ParseUint(pageStr, 10, 64)
+	if err != nil {
+		return 0, "", err
+	}
+
+	return page, sort, nil
 }
 
 func getFeedListEntries(
@@ -44,11 +50,12 @@ func getFeedListEntries(
 	queries *data.Queries,
 	pageSize uint,
 	pageNum uint64,
+	sort string,
 ) (*[]FeedListEntry, uint64, error) {
 	logger.Info("Getting Feeds")
 
 	nextPage := uint64(0)
-	rows, err := getFeedPage(queries, ctx, pageSize, pageNum)
+	rows, err := getFeedPage(queries, ctx, pageSize, pageNum, sort)
 	if err != nil {
 		return nil, nextPage, err
 	}
@@ -84,7 +91,7 @@ func GetFeeds(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
 			return
 		}
 
-		page, err := getPage(r.URL)
+		page, sort, err := getPage(r.URL)
 		if err != nil {
 			logger.With(slog.String("err", err.Error())).Error("Something went wrong when getting the page number from the url.")
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -92,7 +99,7 @@ func GetFeeds(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
 		}
 
 		pageSize := uint(10)
-		entries, nextPage, err := getFeedListEntries(ctx, baseURL, logger, queries, pageSize, page)
+		entries, nextPage, err := getFeedListEntries(ctx, baseURL, logger, queries, pageSize, page, sort)
 		if err != nil {
 			logger.With(slog.String("err", err.Error())).Error("Something went wrong when getting all the feeds.")
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -102,6 +109,7 @@ func GetFeeds(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
 		data := FeedListData{
 			Entries:  *entries,
 			NextPage: nextPage,
+			Sort:     sort,
 		}
 		// Path is relative to where command runs
 		tmpl := template.Must(template.ParseFS(views.ViewFS, "feedList.html"))
@@ -118,6 +126,7 @@ func GetFeeds(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
 type FeedListData struct {
 	Entries  []FeedListEntry
 	NextPage uint64 // 0 means no next page
+	Sort     string
 }
 
 type FeedListEntry struct {

@@ -76,17 +76,29 @@ SELECT id
 FROM Feeds;
 
 -- name: GetAllFeeds :many
--- ?1 is pageSize ?2 is pageNum
-WITH FeedData AS (
+WITH Params AS (
+    SELECT
+      CAST(sqlc.arg(sort_order) AS TEXT) AS sort_order,
+      CAST(sqlc.arg(limit) AS INTEGER) AS lim,
+      CAST(sqlc.arg(page) AS INTEGER) AS pg
+),
+FeedData AS (
     SELECT *
     FROM Feeds
-    LIMIT ?1
-    OFFSET (?2 - 1) * ?1
+    CROSS JOIN Params
+    ORDER BY
+        CASE WHEN Params.sort_order = 'title_asc' THEN title END ASC,
+        CASE WHEN Params.sort_order = 'title_desc' THEN title END DESC,
+        CASE WHEN Params.sort_order = 'oldest' THEN created_at END ASC,
+        CASE WHEN Params.sort_order = 'newest' THEN created_at END DESC,
+        CASE WHEN Params.sort_order NOT IN ('title_asc', 'title_desc', 'oldest', 'newest') THEN created_at END DESC
+    LIMIT (SELECT lim FROM Params)
+    OFFSET ((SELECT pg FROM Params) - 1) * (SELECT lim FROM Params)
 ),
 TotalCount AS (
     SELECT COUNT(*) AS total_rows
     FROM Feeds
 )
-SELECT fd.*,
-       (SELECT total_rows > (?2 * ?1) FROM TotalCount) AS has_more
+SELECT fd.id, fd.created_at, fd.description, fd.title, fd.updated_at, fd.link, fd.xml,
+       (SELECT total_rows > ((SELECT pg FROM Params) * (SELECT lim FROM Params)) FROM TotalCount) AS has_more
 FROM FeedData fd;

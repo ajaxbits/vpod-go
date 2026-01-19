@@ -71,6 +71,15 @@
     <!-- Response will appear here -->
     <div id="response-area"></div>
     <h1>Your Podcasts</h1>
+    <form hx-get="/ui/feeds" hx-target="#feeds" hx-trigger="change">
+      <label for="sort">Sort by:</label>
+      <select name="sort" id="sort">
+        <option value="newest">Newest Added</option>
+        <option value="oldest">Oldest Added</option>
+        <option value="title_asc">Title (A-Z)</option>
+        <option value="title_desc">Title (Z-A)</option>
+      </select>
+    </form>
     <table>
       <thead>
         <tr>

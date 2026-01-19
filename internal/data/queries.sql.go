@@ -39,24 +39,38 @@ func (q *Queries) GetAllFeedIds(ctx context.Context) ([][]byte, error) {
 }
 
 const getAllFeeds = `-- name: GetAllFeeds :many
-WITH FeedData AS (
-    SELECT id, created_at, description, title, updated_at, link, xml
+WITH Params AS (
+    SELECT
+      CAST(?1 AS TEXT) AS sort_order,
+      CAST(?2 AS INTEGER) AS lim,
+      CAST(?3 AS INTEGER) AS pg
+),
+FeedData AS (
+    SELECT id, created_at, description, title, updated_at, link, xml, sort_order, lim, pg
     FROM Feeds
-    LIMIT ?1
-    OFFSET (?2 - 1) * ?1
+    CROSS JOIN Params
+    ORDER BY
+        CASE WHEN Params.sort_order = 'title_asc' THEN title END ASC,
+        CASE WHEN Params.sort_order = 'title_desc' THEN title END DESC,
+        CASE WHEN Params.sort_order = 'oldest' THEN created_at END ASC,
+        CASE WHEN Params.sort_order = 'newest' THEN created_at END DESC,
+        CASE WHEN Params.sort_order NOT IN ('title_asc', 'title_desc', 'oldest', 'newest') THEN created_at END DESC
+    LIMIT (SELECT lim FROM Params)
+    OFFSET ((SELECT pg FROM Params) - 1) * (SELECT lim FROM Params)
 ),
 TotalCount AS (
     SELECT COUNT(*) AS total_rows
     FROM Feeds
 )
 SELECT fd.id, fd.created_at, fd.description, fd.title, fd.updated_at, fd.link, fd.xml,
-       (SELECT total_rows > (?2 * ?1) FROM TotalCount) AS has_more
+       (SELECT total_rows > ((SELECT pg FROM Params) * (SELECT lim FROM Params)) FROM TotalCount) AS has_more
 FROM FeedData fd
 `
 
 type GetAllFeedsParams struct {
-	Column1 interface{}
-	Column2 interface{}
+	SortOrder string
+	Limit     int64
+	Page      int64
 }
 
 type GetAllFeedsRow struct {
@@ -70,9 +84,8 @@ type GetAllFeedsRow struct {
 	HasMore     bool
 }
 
-// ?1 is pageSize ?2 is pageNum
 func (q *Queries) GetAllFeeds(ctx context.Context, arg GetAllFeedsParams) ([]GetAllFeedsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAllFeeds, arg.Column1, arg.Column2)
+	rows, err := q.db.QueryContext(ctx, getAllFeeds, arg.SortOrder, arg.Limit, arg.Page)
 	if err != nil {
 		return nil, err
 	}
