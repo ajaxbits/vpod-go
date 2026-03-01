@@ -124,3 +124,76 @@ func Test_upsertPodcast(t *testing.T) {
 		})
 	}
 }
+
+// TestUpsertPodcast_PreservesCreatedAt verifies that upserting a feed multiple
+// times does not overwrite the original created_at timestamp.
+func TestUpsertPodcast_PreservesCreatedAt(t *testing.T) {
+	db, queries, err := initDb()
+	if err != nil {
+		t.Fatalf("failed to init db: %v", err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	feedID := "created-at-test"
+	link, err := url.Parse("https://example.com")
+	if err != nil {
+		t.Fatalf("failed to parse URL: %v", err)
+	}
+
+	// First insert
+	p1, err := New(feedID, "Original Title", *link, "Original description")
+	if err != nil {
+		t.Fatalf("failed to create podcast: %v", err)
+	}
+
+	if err := UpsertPodcast(queries, *p1, ctx); err != nil {
+		t.Fatalf("first upsert failed: %v", err)
+	}
+
+	// Retrieve the original created_at
+	var originalCreatedAt time.Time
+	err = db.QueryRow("SELECT created_at FROM feeds WHERE cast(id as text) = ?", feedID).Scan(&originalCreatedAt)
+	if err != nil {
+		t.Fatalf("failed to query created_at: %v", err)
+	}
+
+	// Small delay to ensure time difference if created_at were overwritten
+	time.Sleep(10 * time.Millisecond)
+
+	// Second upsert with different data
+	p2, err := New(feedID, "Updated Title", *link, "Updated description")
+	if err != nil {
+		t.Fatalf("failed to create podcast: %v", err)
+	}
+
+	if err := UpsertPodcast(queries, *p2, ctx); err != nil {
+		t.Fatalf("second upsert failed: %v", err)
+	}
+
+	// Retrieve created_at after second upsert
+	var afterUpsertCreatedAt time.Time
+	err = db.QueryRow("SELECT created_at FROM feeds WHERE cast(id as text) = ?", feedID).Scan(&afterUpsertCreatedAt)
+	if err != nil {
+		t.Fatalf("failed to query created_at after upsert: %v", err)
+	}
+
+	// Verify created_at was not overwritten
+	if !originalCreatedAt.Equal(afterUpsertCreatedAt) {
+		t.Errorf("created_at was overwritten: original=%v, after=%v", originalCreatedAt, afterUpsertCreatedAt)
+	}
+
+	// Also verify the other fields were actually updated
+	var title, description string
+	err = db.QueryRow("SELECT title, description FROM feeds WHERE cast(id as text) = ?", feedID).Scan(&title, &description)
+	if err != nil {
+		t.Fatalf("failed to query updated fields: %v", err)
+	}
+
+	if title != "Updated Title" {
+		t.Errorf("title was not updated: got %q, want %q", title, "Updated Title")
+	}
+	if description != "Updated description" {
+		t.Errorf("description was not updated: got %q, want %q", description, "Updated description")
+	}
+}

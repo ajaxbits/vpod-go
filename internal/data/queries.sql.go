@@ -323,7 +323,7 @@ func (q *Queries) UpsertEpisode(ctx context.Context, arg UpsertEpisodeParams) er
 }
 
 const upsertFeed = `-- name: UpsertFeed :exec
-INSERT OR REPLACE INTO Feeds (
+INSERT INTO Feeds (
     id,
     created_at,
     description,
@@ -340,6 +340,12 @@ INSERT OR REPLACE INTO Feeds (
     ?,
     ?
 )
+ON CONFLICT(id) DO UPDATE SET
+    description = excluded.description,
+    title = excluded.title,
+    updated_at = CURRENT_TIMESTAMP,
+    link = excluded.link,
+    xml = excluded.xml
 `
 
 type UpsertFeedParams struct {
