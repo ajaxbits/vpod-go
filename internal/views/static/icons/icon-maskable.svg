@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Maskable icon with safe zone padding (inner 80% is safe) -->
+  <rect width="512" height="512" fill="#11191f"/>
+  <circle cx="256" cy="213" r="80" fill="none" stroke="#fc7e0f" stroke-width="14"/>
+  <path d="M256 293 L256 380" stroke="#fc7e0f" stroke-width="14" stroke-linecap="round"/>
+  <path d="M186 350 Q256 395 326 350" fill="none" stroke="#fc7e0f" stroke-width="14" stroke-linecap="round"/>
+  <polygon points="230,185 230,241 274,213" fill="#fc7e0f"/>
+</svg>

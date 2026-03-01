@@ -2,14 +2,55 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>vpod - YouTube to Podcast</title>
+  
+  <!-- PWA Meta Tags -->
+  <meta name="description" content="Convert YouTube channels into podcast feeds">
+  <meta name="theme-color" content="#11191f">
+  <link rel="manifest" href="/ui/static/manifest.json">
+  
+  <!-- iOS PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="vpod">
+  <link rel="apple-touch-icon" href="/ui/static/icons/icon-192.svg">
+  
+  <!-- Prevent phone number detection -->
+  <meta name="format-detection" content="telephone=no">
+  
   <link rel="stylesheet" href="/ui/static/css/pico.min.css">
   <script src="/ui/static/js/htmx@2.0.4.min.js"></script>
   <style>
     :root {
       --pico-font-size: 16px;
     }
+    
+    /* iOS safe area handling */
+    body {
+      padding-top: env(safe-area-inset-top);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    
+    /* Improve touch targets for mobile */
+    button, a, select, input {
+      min-height: 44px;
+    }
+    
+    /* Prevent text selection on double-tap for app-like feel */
+    h1, h2, h3, label {
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    
+    /* Smooth scrolling */
+    html {
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+    
     .add-feed-section {
       background: var(--pico-card-background-color);
       border-radius: var(--pico-border-radius);
@@ -245,5 +286,18 @@
   <footer class="container">
     <small>vpod - YouTube to Podcast converter</small>
   </footer>
+
+  <script>
+    // Register service worker for PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/ui/static/sw.js', { scope: '/ui/' })
+        .then((registration) => {
+          console.log('SW registered:', registration.scope);
+        })
+        .catch((error) => {
+          console.log('SW registration failed:', error);
+        });
+    }
+  </script>
 </body>
 </html>
