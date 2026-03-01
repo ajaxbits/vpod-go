@@ -79,11 +79,13 @@ func GenFeed(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
 		logger.Debug("Feed successfully generated")
 
 		u := baseURL.JoinPath("feed", p.Id)
+		feedURL := u.String()
 		data := FeedPageData{
 			Image:          p.Image.URL,
 			Title:          p.Title,
-			URL:            u.String(),
-			URLPathEscaped: url.PathEscape(u.String()),
+			URL:            feedURL,
+			URLNoScheme:    stripScheme(feedURL),
+			URLPathEscaped: url.PathEscape(feedURL),
 		}
 		// Path is relative to where command runs
 		tmpl := template.Must(template.ParseFS(views.ViewFS, "podcastSuccess.html"))
@@ -92,9 +94,11 @@ func GenFeed(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
 	return http.HandlerFunc(fn)
 }
 
+// FeedPageData contains data for rendering the success page after creating a feed.
 type FeedPageData struct {
 	Image          string
 	Title          string
 	URL            string
+	URLNoScheme    string // URL without scheme for podcast:// style links
 	URLPathEscaped string
 }

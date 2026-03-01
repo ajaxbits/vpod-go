@@ -7,12 +7,21 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 	"vpod/internal/data"
 	"vpod/internal/views"
 
 	"github.com/urfave/cli/v2"
 )
+
+// stripScheme removes the protocol scheme (http:// or https://) from a URL.
+// Used for generating podcast app deep links that use their own scheme.
+func stripScheme(u string) string {
+	u = strings.TrimPrefix(u, "https://")
+	u = strings.TrimPrefix(u, "http://")
+	return u
+}
 
 func getFeedPage(q *data.Queries, ctx context.Context, pageSize uint, pageNumber uint64, sort string) ([]data.GetAllFeedsRow, error) {
 	params := data.GetAllFeedsParams{
@@ -63,13 +72,18 @@ func getFeedListEntries(
 	feedListEntries := make([]FeedListEntry, 0, len(rows))
 	if len(rows) > 0 {
 		for _, row := range rows {
+			feedID := string(row.ID)
+			feedURL := baseURL.JoinPath("feed", feedID).String()
 			feedListEntries = append(feedListEntries, FeedListEntry{
 				ChannelURL:  row.Link,
 				Description: row.Description.String,
+				ID:          feedID,
 				LastUpdated: row.UpdatedAt.Time,
 				NumEps:      0, // TODO
 				Title:       row.Title,
-				URL:         baseURL.JoinPath("feed", string(row.ID)).String(),
+				URL:         feedURL,
+				URLEncoded:  url.QueryEscape(feedURL),
+				URLNoScheme: stripScheme(feedURL),
 			})
 		}
 		if rows[0].HasMore {
@@ -129,11 +143,17 @@ type FeedListData struct {
 	Sort     string
 }
 
+// FeedListEntry represents a single feed in the feed list view.
+// It contains all data needed to render the feed card including
+// various URL formats for different podcast app deep links.
 type FeedListEntry struct {
 	ChannelURL  string
 	Description string
+	ID          string // Feed ID used for delete operations
 	LastUpdated time.Time
 	NumEps      uint64
 	Title       string
-	URL         string
+	URL         string // Full RSS feed URL
+	URLEncoded  string // URL-encoded feed URL for query params
+	URLNoScheme string // URL without scheme for podcast:// style links
 }

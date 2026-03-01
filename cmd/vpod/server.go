@@ -76,6 +76,7 @@ func serve(cCtx *cli.Context) error {
 		r.HandleFunc("GET /", handlers.Index())
 		r.HandleFunc("GET /feeds", handlers.GetFeeds(cCtx, env.queries))
 		r.HandleFunc("POST /gen", handlers.GenFeed(cCtx, env.queries))
+		r.HandleFunc("DELETE /feeds/", handlers.DeleteFeed(env.queries))
 	})
 
 	address := fmt.Sprintf("%s:%d", cCtx.String("host"), cCtx.Uint64("port"))

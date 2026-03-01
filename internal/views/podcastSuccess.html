@@ -1,11 +1,36 @@
-<!-- Huge shoutout to https://github.com/nathangathright/podcast-platform-links/blob/main/schemes.md -->
-<h1>Your feed is now available</h1>
-<img src="{{ .Image }}" alt="Thumbnail for {{ .Title }}" height="100" width="100">
-<h2>Subscribe</h2>
-<ul>
-  <li><a href="{{ .URL }}">RSS</a></li>
-  <li><a href="overcast://x-callback-url/add?url={{ .URL }}">Overcast</a></li>
-  <li><a href="https://antennapod.org/deeplink/subscribe?title={{ .Title }}&url={{ .URL }}">AntennaPod</a></li>
-  <li><a href="googlepodcasts://{{ .URLPathEscaped }}">Google Podcasts</a></li>
-  <li><a href="gpodder://{{ .URLPathEscaped }}">gPodder</a></li>
-</ul>
+<article>
+  <header>
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      {{ if .Image }}
+      <img src="{{ .Image }}" alt="{{ .Title }}" style="width: 80px; height: 80px; border-radius: var(--pico-border-radius); object-fit: cover;">
+      {{ end }}
+      <div>
+        <h3 style="margin: 0;">{{ .Title }}</h3>
+        <p style="margin: 0.25rem 0 0 0; color: var(--pico-muted-color);">Feed created successfully</p>
+      </div>
+    </div>
+  </header>
+  <div class="podcast-links">
+    <a href="overcast://x-callback-url/add?url={{ .URL }}" class="overcast-btn" role="button">
+      Add to Overcast
+    </a>
+    <a href="{{ .URL }}" role="button" class="outline">RSS Feed</a>
+    <details class="dropdown">
+      <summary role="button" class="secondary outline">More Apps</summary>
+      <ul>
+        <li><a href="podcast://{{ .URLNoScheme }}">Apple Podcasts</a></li>
+        <li><a href="https://antennapod.org/deeplink/subscribe?url={{ .URLPathEscaped }}">AntennaPod</a></li>
+        <li><a href="pktc://subscribe/{{ .URLNoScheme }}">Pocket Casts</a></li>
+        <li><a href="castro://subscribe/{{ .URLNoScheme }}">Castro</a></li>
+        <li><a href="downcast://{{ .URLNoScheme }}">Downcast</a></li>
+      </ul>
+    </details>
+  </div>
+  <footer>
+    <small>The feed will appear in your list below.</small>
+  </footer>
+</article>
+<script>
+  // Refresh the feeds list after adding a new feed
+  htmx.trigger('#feeds-container', 'load');
+</script>

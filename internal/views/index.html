@@ -1,97 +1,249 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title></title>
-    <link href="/ui/static/css/simple.css" rel="stylesheet">
-    <script src="/ui/static/js/htmx@2.0.4.min.js"></script>
-  </head>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>vpod - YouTube to Podcast</title>
+  <link rel="stylesheet" href="/ui/static/css/pico.min.css">
+  <script src="/ui/static/js/htmx@2.0.4.min.js"></script>
   <style>
-    /* Spinner styles */
-    .spinner {
-        display: none;
-        animation: spin 1s ease-in-out infinite;
+    :root {
+      --pico-font-size: 16px;
     }
-
+    .add-feed-section {
+      background: var(--pico-card-background-color);
+      border-radius: var(--pico-border-radius);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      border: 1px solid var(--pico-muted-border-color);
+    }
+    .add-feed-section h2 {
+      margin-top: 0;
+      margin-bottom: 1rem;
+    }
+    .add-feed-section form {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1rem;
+      margin-bottom: 0;
+    }
+    .add-feed-section input[type="text"] {
+      margin-bottom: 0;
+      min-width: 0;
+    }
+    .add-feed-section button {
+      margin-bottom: 0;
+      white-space: nowrap;
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+    @media (max-width: 576px) {
+      .add-feed-section form {
+        grid-template-columns: 1fr;
+      }
+      .add-feed-section button {
+        width: 100%;
+      }
+    }
+    #response-area:not(:empty) {
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: var(--pico-border-radius);
+      background: var(--pico-card-background-color);
+    }
+    .feed-card {
+      position: relative;
+    }
+    .feed-card header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .feed-card header h3 {
+      margin: 0;
+    }
+    .feed-card .feed-meta {
+      color: var(--pico-muted-color);
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+    }
+    .feed-card .feed-description {
+      margin: 1rem 0;
+    }
+    .feed-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .overcast-btn {
+      --pico-background-color: #fc7e0f;
+      --pico-border-color: #fc7e0f;
+      --pico-color: #fff;
+    }
+    .overcast-btn:hover {
+      --pico-background-color: #e66d00;
+      --pico-border-color: #e66d00;
+    }
+    .podcast-links {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .podcast-links details {
+      margin: 0;
+      display: inline-block;
+    }
+    .podcast-links details summary {
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+    }
+    .podcast-links details[open] summary {
+      margin-bottom: 0.5rem;
+    }
+    .podcast-links details ul {
+      position: absolute;
+      background: var(--pico-card-background-color);
+      border: 1px solid var(--pico-muted-border-color);
+      border-radius: var(--pico-border-radius);
+      padding: 0.5rem;
+      margin: 0;
+      list-style: none;
+      z-index: 10;
+      min-width: 150px;
+    }
+    .podcast-links details ul li {
+      padding: 0;
+    }
+    .podcast-links details ul li a {
+      display: block;
+      padding: 0.5rem;
+      text-decoration: none;
+    }
+    .podcast-links details ul li a:hover {
+      background: var(--pico-secondary-background);
+      border-radius: var(--pico-border-radius);
+    }
+    .delete-btn {
+      --pico-background-color: transparent;
+      --pico-border-color: var(--pico-del-color);
+      --pico-color: var(--pico-del-color);
+    }
+    .delete-btn:hover {
+      --pico-background-color: var(--pico-del-color);
+      --pico-color: #fff;
+    }
+    .sort-controls {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .sort-controls label {
+      margin: 0;
+      white-space: nowrap;
+    }
+    .sort-controls select {
+      margin: 0;
+      width: auto;
+    }
+    .htmx-request .htmx-indicator {
+      display: inline-block;
+    }
+    .htmx-indicator {
+      display: none;
+    }
     @keyframes spin {
-        to { transform: translateY(-50%) rotate(360deg); }
+      to { transform: rotate(360deg); }
     }
-
-    /* Show spinner during request */
-    form.htmx-request #submitBtn .spinner {
-        display: block;
+    .spinner {
+      display: inline-block;
+      width: 1em;
+      height: 1em;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      margin-left: 0.5rem;
+      vertical-align: middle;
     }
-    form.htmx-request #submitBtn {
-        padding-right: 45px; /* Make room for spinner */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--pico-muted-color);
     }
-
-    .loader {
-        position: relative;
-        width: 85px;
-        height: 50px;
-        background-repeat: no-repeat;
-        background-image: linear-gradient(#000 50px, transparent 0),
-                          linear-gradient(#000 50px, transparent 0),
-                          linear-gradient(#000 50px, transparent 0),
-                          linear-gradient(#000 50px, transparent 0),
-                          linear-gradient(#000 50px, transparent 0),
-                          linear-gradient(#000 50px, transparent 0);
-        background-position: 0px center, 15px center, 30px center, 45px center, 60px center, 75px center, 90px center;
-        animation: rikSpikeRoll 0.65s linear infinite alternate;
+    .empty-state p {
+      margin: 0;
     }
-
-    @keyframes rikSpikeRoll {
-        0% { background-size: 10px 3px; }
-        16% { background-size: 10px 50px, 10px 3px, 10px 3px, 10px 3px, 10px 3px, 10px 3px; }
-        33% { background-size: 10px 30px, 10px 50px, 10px 3px, 10px 3px, 10px 3px, 10px 3px; }
-        50% { background-size: 10px 10px, 10px 30px, 10px 50px, 10px 3px, 10px 3px, 10px 3px; }
-        66% { background-size: 10px 3px, 10px 10px, 10px 30px, 10px 50px, 10px 3px, 10px 3px; }
-        83% { background-size: 10px 3px, 10px 3px, 10px 10px, 10px 30px, 10px 50px, 10px 3px; }
-        100% { background-size: 10px 3px, 10px 3px, 10px 3px, 10px 10px, 10px 30px, 10px 50px; }
+    #feeds-container {
+      min-height: 100px;
+    }
+    .feed-card.htmx-swapping {
+      opacity: 0;
+      transition: opacity 0.3s ease-out;
     }
   </style>
-  <body>
-    <h1>Welcome to vpod</h1>
-    <form
-      hx-post="/ui/gen"
-      hx-trigger="submit"
-      hx-target="#response-area"
-      class="search-container"
-    >
-      <input
-        type="text"
-        id="channelURL"
-        name="channelURL"
-        placeholder="Enter YouTube channel URL"
-        required
-      >
-      <button type="submit" id="submitBtn">Generate!<span class="spinner loader"></span></button>
-    </form>
-    <!-- Response will appear here -->
-    <div id="response-area"></div>
-    <h1>Your Podcasts</h1>
-    <form hx-get="/ui/feeds" hx-target="#feeds" hx-trigger="change">
-      <label for="sort">Sort by:</label>
-      <select name="sort" id="sort">
-        <option value="newest">Newest Added</option>
-        <option value="oldest">Oldest Added</option>
-        <option value="title_asc">Title (A-Z)</option>
-        <option value="title_desc">Title (Z-A)</option>
-      </select>
-    </form>
-    <table>
-      <thead>
-        <tr>
-          <th>Title</th>
-          <th>Description</th>
-          <th>Last Updated</th>
-          <!-- TODO -->
-          <!-- <th>Number of Episodes</th> -->
-          <th>Feed URL</th>
-        </tr>
-      </thead>
-      <tbody id="feeds" hx-get="/ui/feeds" hx-target="this" hx-trigger="load" hx-swap="beforeend"></tbody>
-    </table>
-  </body>
+</head>
+<body>
+  <main class="container">
+    <header>
+      <h1>vpod</h1>
+      <p>Convert YouTube channels into podcast feeds</p>
+    </header>
+
+    <section class="add-feed-section">
+      <h2>Add New Feed</h2>
+      <form hx-post="/ui/gen"
+            hx-target="#response-area"
+            hx-indicator="#gen-indicator">
+        <input type="text"
+               name="channelURL"
+               placeholder="https://www.youtube.com/@ChannelName"
+               required
+               autocomplete="off"
+               aria-label="YouTube channel URL">
+        <button type="submit">
+          Add Feed
+          <span id="gen-indicator" class="htmx-indicator spinner"></span>
+        </button>
+      </form>
+      <div id="response-area"></div>
+    </section>
+
+    <section>
+      <header>
+        <hgroup>
+          <h2>Your Feeds</h2>
+          <p>Manage your podcast subscriptions</p>
+        </hgroup>
+      </header>
+
+      <div class="sort-controls">
+        <label for="sort">Sort by:</label>
+        <select name="sort" id="sort"
+                hx-get="/ui/feeds"
+                hx-target="#feeds-container"
+                hx-trigger="change"
+                hx-indicator="#feeds-indicator">
+          <option value="newest">Newest Added</option>
+          <option value="oldest">Oldest Added</option>
+          <option value="title_asc">Title (A-Z)</option>
+          <option value="title_desc">Title (Z-A)</option>
+        </select>
+        <span id="feeds-indicator" class="htmx-indicator spinner"></span>
+      </div>
+
+      <div id="feeds-container"
+           hx-get="/ui/feeds"
+           hx-trigger="load"
+           hx-indicator="#feeds-indicator">
+      </div>
+    </section>
+  </main>
+
+  <footer class="container">
+    <small>vpod - YouTube to Podcast converter</small>
+  </footer>
+</body>
 </html>

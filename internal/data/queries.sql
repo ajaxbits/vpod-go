@@ -75,6 +75,17 @@ ORDER BY released_at DESC;
 SELECT id
 FROM Feeds;
 
+-- name: DeleteFeed :exec
+DELETE FROM Feeds WHERE id = ?;
+
+-- name: DeleteEpisodesForFeed :exec
+DELETE FROM Episodes WHERE feed_id = ?;
+
+-- name: GetFeed :one
+SELECT id, created_at, description, title, updated_at, link, xml
+FROM Feeds
+WHERE id = ?;
+
 -- name: GetAllFeeds :many
 WITH Params AS (
     SELECT
