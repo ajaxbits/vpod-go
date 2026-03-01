@@ -70,9 +70,9 @@ FeedData AS (
     ORDER BY
         CASE WHEN Params.sort_order = 'title_asc' THEN title END ASC,
         CASE WHEN Params.sort_order = 'title_desc' THEN title END DESC,
-        CASE WHEN Params.sort_order = 'oldest' THEN id END ASC,
-        CASE WHEN Params.sort_order = 'newest' THEN id END DESC,
-        CASE WHEN Params.sort_order NOT IN ('title_asc', 'title_desc', 'oldest', 'newest') THEN id END DESC
+        CASE WHEN Params.sort_order = 'oldest' THEN created_at END ASC,
+        CASE WHEN Params.sort_order = 'newest' THEN created_at END DESC,
+        CASE WHEN Params.sort_order NOT IN ('title_asc', 'title_desc', 'oldest', 'newest') THEN created_at END DESC
     LIMIT (SELECT lim FROM Params)
     OFFSET ((SELECT pg FROM Params) - 1) * (SELECT lim FROM Params)
 ),
@@ -102,8 +102,6 @@ type GetAllFeedsRow struct {
 	HasMore     bool
 }
 
-// Sorts by UUIDv7 id for 'newest'/'oldest' since the id encodes creation time.
-// The created_at column may be unreliable due to INSERT OR REPLACE semantics.
 func (q *Queries) GetAllFeeds(ctx context.Context, arg GetAllFeedsParams) ([]GetAllFeedsRow, error) {
 	rows, err := q.db.QueryContext(ctx, getAllFeeds, arg.SortOrder, arg.Limit, arg.Page)
 	if err != nil {

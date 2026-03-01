@@ -87,8 +87,6 @@ FROM Feeds
 WHERE id = ?;
 
 -- name: GetAllFeeds :many
--- Sorts by UUIDv7 id for 'newest'/'oldest' since the id encodes creation time.
--- The created_at column may be unreliable due to INSERT OR REPLACE semantics.
 WITH Params AS (
     SELECT
       CAST(sqlc.arg(sort_order) AS TEXT) AS sort_order,
@@ -102,9 +100,9 @@ FeedData AS (
     ORDER BY
         CASE WHEN Params.sort_order = 'title_asc' THEN title END ASC,
         CASE WHEN Params.sort_order = 'title_desc' THEN title END DESC,
-        CASE WHEN Params.sort_order = 'oldest' THEN id END ASC,
-        CASE WHEN Params.sort_order = 'newest' THEN id END DESC,
-        CASE WHEN Params.sort_order NOT IN ('title_asc', 'title_desc', 'oldest', 'newest') THEN id END DESC
+        CASE WHEN Params.sort_order = 'oldest' THEN created_at END ASC,
+        CASE WHEN Params.sort_order = 'newest' THEN created_at END DESC,
+        CASE WHEN Params.sort_order NOT IN ('title_asc', 'title_desc', 'oldest', 'newest') THEN created_at END DESC
     LIMIT (SELECT lim FROM Params)
     OFFSET ((SELECT pg FROM Params) - 1) * (SELECT lim FROM Params)
 ),
