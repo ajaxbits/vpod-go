@@ -60,7 +60,10 @@ func serve(cCtx *cli.Context) error {
 	r.Use(middleware.LogRequest(logger))
 	r.Use(panicHandler(logger))
 
-	r.HandleFunc("GET /audio/", handlers.Audio())
+	r.Group("/audio", func(r *router.Router) {
+		r.Use(middleware.MaxConcurrent(3))
+		r.HandleFunc("GET /", handlers.Audio())
+	})
 	r.HandleFunc("GET /feed/", handlers.Feed(env.queries))
 
 	r.Group("/api", api.Routes)

@@ -26,7 +26,7 @@ func genFeed(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
 		baseURL, err := url.Parse(cCtx.String("base-url"))
 		if err != nil {
 			logger.With(slog.String("err", err.Error())).Error("Something went wrong when generating feed")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 
@@ -40,21 +40,21 @@ func genFeed(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
 		c, err := youtube.FetchChannel(&ytURL, youtube.WithNItems(20))
 		if err != nil {
 			logger.With(slog.String("err", err.Error())).Error("Something went wrong when fetching feed")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 
 		p, err := podcast.FromChannel(*c, *baseURL) // TODO: decide what to do about PubDate
 		if err != nil {
 			logger.With(slog.String("err", err.Error())).Error("Something went wrong when generating feed")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 
 		err = podcast.UpsertPodcast(queries, *p, ctx)
 		if err != nil {
 			logger.With(slog.String("err", err.Error())).Error("Something went wrong when inserting feed into db")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 

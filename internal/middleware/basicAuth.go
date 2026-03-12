@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"crypto/subtle"
 	"net/http"
 )
 
@@ -20,5 +21,8 @@ func NewBasicAuth(wantedUser *string, wantedPass *string) func(http.Handler) htt
 }
 
 func validateCredentials(gotUser string, gotPass string, wantedUser string, wantedPass string) bool {
-	return gotUser == wantedUser && gotPass == wantedPass
+	// Use constant-time comparison to prevent timing attacks.
+	userMatch := subtle.ConstantTimeCompare([]byte(gotUser), []byte(wantedUser))
+	passMatch := subtle.ConstantTimeCompare([]byte(gotPass), []byte(wantedPass))
+	return userMatch == 1 && passMatch == 1
 }

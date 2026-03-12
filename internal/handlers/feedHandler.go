@@ -25,7 +25,7 @@ func Feed(queries *data.Queries) http.HandlerFunc {
 			http.Error(w, "Feed not found, please generate it.", http.StatusNotFound)
 		} else if err != nil {
 			logger.With(slog.String("err", fmt.Sprintf("%v", err))).Error("Something went wrong when fetching feed.")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		} else {
 			logger.Debug("Feed found in DB")
 			w.Header().Set("Content-Type", "application/xml")

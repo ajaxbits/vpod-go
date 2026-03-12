@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"html/template"
 	"log/slog"
 	"net/http"
@@ -15,6 +15,15 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+// allowedYouTubeHosts is the set of hostnames accepted for channel URLs.
+var allowedYouTubeHosts = map[string]bool{
+	"youtube.com":     true,
+	"www.youtube.com": true,
+	"m.youtube.com":   true,
+	"youtu.be":        true,
+	"www.youtu.be":    true,
+}
+
 func gen(
 	ctx context.Context,
 	channelURL string,
@@ -25,7 +34,13 @@ func gen(
 	logger.Info("generating feed")
 	ytURL, err := url.Parse(channelURL)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid URL: %w", err)
+	}
+	if ytURL.Scheme != "https" && ytURL.Scheme != "http" {
+		return nil, fmt.Errorf("unsupported URL scheme: %s", ytURL.Scheme)
+	}
+	if !allowedYouTubeHosts[ytURL.Hostname()] {
+		return nil, fmt.Errorf("URL host %q is not an allowed YouTube domain", ytURL.Hostname())
 	}
 
 	c, err := youtube.FetchChannel(ytURL, youtube.WithNItems(20))
@@ -54,26 +69,26 @@ func GenFeed(cCtx *cli.Context, queries *data.Queries) http.HandlerFunc {
 		err := r.ParseForm()
 		if err != nil {
 			logger.With(slog.String("err", err.Error())).Error("Could not parse form data")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
 		baseURL, err := url.Parse(cCtx.String("base-url"))
 		if err != nil {
 			logger.With(slog.String("err", err.Error())).Error("Could not parse baseURL from context")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 		channelURL := r.FormValue("channelURL")
 		if channelURL == "" {
-			err = errors.New("channelURL cannot be blank")
-			logger.With(slog.String("err", err.Error())).Error("channelURL is blank")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			logger.Error("channelURL is blank")
+			http.Error(w, "channelURL cannot be blank", http.StatusBadRequest)
+			return
 		}
 
 		p, err := gen(ctx, channelURL, baseURL, logger, queries)
 		if err != nil {
 			logger.With(slog.String("err", err.Error())).Error("Something went wrong when generating feed.")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "Failed to generate feed", http.StatusInternalServerError)
 			return
 		}
 		logger.Debug("Feed successfully generated")

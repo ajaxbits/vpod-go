@@ -149,6 +149,7 @@ func FetchChannel(ytURL *url.URL, opts ...FetchChannelOption) (*Channel, error) 
 		"--ignore-no-formats-error", // ignore when a video is age-restricted
 		// ^ TODO: add a feature to pass in cookies as desired
 		fmt.Sprintf("--playlist-items=0:%d", numItems),
+		"--", // prevent argument injection on the positional URL
 		ytURL.String(),
 	)
 
