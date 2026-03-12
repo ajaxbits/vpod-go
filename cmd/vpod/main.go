@@ -8,6 +8,9 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+// Version is set at build time via -ldflags.
+var Version = "dev"
+
 func main() {
 	app := &cli.App{
 		Name:  "vpod",
@@ -98,7 +101,7 @@ func main() {
 			return nil
 		},
 		Action: func(cCtx *cli.Context) error {
-			return serve(cCtx)
+			return serve(cCtx, Version)
 		},
 	}
 

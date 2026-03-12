@@ -26,6 +26,10 @@ buildGoModule {
 
   vendorHash = "sha256-+ZGm7y7wuukivXBf7cEhJBSJszxTDbqch4Jmyi9mB7M=";
 
+  ldflags = [
+    "-X main.Version=${version}"
+  ];
+
   nativeBuildInputs = [ makeWrapper ];
   postInstall = ''
     install -Dm644 $src/vector.yaml $out/etc/vector.yaml

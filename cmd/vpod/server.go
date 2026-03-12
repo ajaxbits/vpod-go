@@ -30,7 +30,7 @@ func panicHandler(logger *slog.Logger) func(http.Handler) http.Handler {
 	}
 }
 
-func serve(cCtx *cli.Context) error {
+func serve(cCtx *cli.Context, version string) error {
 	env, err := NewEnv(
 		cCtx.String("log-level"),
 		cCtx.String("base-url"),
@@ -76,7 +76,7 @@ func serve(cCtx *cli.Context) error {
 		// TODO: revisit after embeddings
 		r.Handle("GET /static/", handlers.Static())
 
-		r.HandleFunc("GET /", handlers.Index())
+		r.HandleFunc("GET /", handlers.Index(version))
 		r.HandleFunc("GET /feeds", handlers.GetFeeds(cCtx, env.queries))
 		r.HandleFunc("POST /gen", handlers.GenFeed(cCtx, env.queries))
 		r.HandleFunc("DELETE /feeds/", handlers.DeleteFeed(env.queries))

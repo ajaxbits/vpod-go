@@ -61,7 +61,8 @@
             packages =
               let
                 lastModifiedDate = top.self.lastModifiedDate or top.self.lastModified or "19700101";
-                version = builtins.substring 0 8 lastModifiedDate;
+                shortRev = top.self.shortRev or "dirty";
+                version = "${builtins.substring 0 8 lastModifiedDate}-${shortRev}";
               in
               {
                 ${name} = pkgs.callPackage ./nix/package.nix {
