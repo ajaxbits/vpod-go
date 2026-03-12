@@ -1,5 +1,5 @@
 {
-  buildGoModule,
+  buildGo126Module,
   lib,
   makeWrapper,
   name,
@@ -20,7 +20,7 @@ let
     root = ../.;
   };
 in
-buildGoModule {
+buildGo126Module {
   inherit src version;
   pname = name;
 

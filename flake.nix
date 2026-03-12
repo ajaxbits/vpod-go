@@ -66,7 +66,7 @@
               in
               {
                 ${name} = pkgs.callPackage ./nix/package.nix {
-                  inherit (pkgs) buildGoModule makeWrapper lib;
+                  inherit (pkgs) buildGo126Module makeWrapper lib;
                   inherit
                     name
                     pkgs
