@@ -6,42 +6,40 @@
 {{ end }}
 {{ else }}
 {{ range .Entries }}
-<article class="feed-card" id="feed-{{ .ID }}">
-  <header>
-    <div>
-      <h3><a href="{{ .ChannelURL }}" target="_blank" rel="noopener">{{ .Title }}</a></h3>
-      <p class="feed-meta">Updated {{ .LastUpdated.Format "Jan 2, 2006" }}</p>
-    </div>
-  </header>
-  {{ if .Description }}
-  <p class="feed-description">{{ .Description }}</p>
-  {{ end }}
-  <footer>
-    <div class="podcast-links">
-      <a href="overcast://x-callback-url/add?url={{ .URL }}" class="overcast-btn" role="button">
-        Add to Overcast
-      </a>
-      <a href="{{ .URL }}" role="button" class="outline">RSS Feed</a>
-      <details class="dropdown">
-        <summary role="button" class="secondary outline">More Apps</summary>
-        <ul>
-          <li><a href="podcast://{{ .URLNoScheme }}">Apple Podcasts</a></li>
-          <li><a href="https://antennapod.org/deeplink/subscribe?url={{ .URLEncoded }}">AntennaPod</a></li>
-          <li><a href="pktc://subscribe/{{ .URLNoScheme }}">Pocket Casts</a></li>
-          <li><a href="castro://subscribe/{{ .URLNoScheme }}">Castro</a></li>
-          <li><a href="downcast://{{ .URLNoScheme }}">Downcast</a></li>
-        </ul>
-      </details>
-      <button class="delete-btn outline"
-              hx-delete="/ui/feeds/{{ .ID }}"
-              hx-target="#feed-{{ .ID }}"
-              hx-swap="outerHTML swap:0.3s"
-              hx-confirm="Delete &quot;{{ .Title }}&quot;? This cannot be undone.">
-        Delete
-      </button>
-    </div>
-  </footer>
-</article>
+<div class="feed-row" id="feed-{{ .ID }}"{{ if .Description }} title="{{ .Description }}"{{ end }}>
+  <div class="feed-row-info">
+    <a href="{{ .ChannelURL }}" target="_blank" rel="noopener" class="feed-row-title">{{ .Title }}</a>
+    <span class="feed-row-meta">{{ .LastUpdated.Format "Jan 2, 2006" }}</span>
+  </div>
+  <div class="feed-row-actions">
+    <details class="dropdown feed-subscribe-dropdown">
+      <summary role="button" class="outline secondary feed-subscribe-btn">Subscribe</summary>
+      <ul>
+        <li><a href="overcast://x-callback-url/add?url={{ .URL }}">Overcast</a></li>
+        <li><a href="podcast://{{ .URLNoScheme }}">Apple Podcasts</a></li>
+        <li><a href="https://antennapod.org/deeplink/subscribe?url={{ .URLEncoded }}">AntennaPod</a></li>
+        <li><a href="pktc://subscribe/{{ .URLNoScheme }}">Pocket Casts</a></li>
+        <li><a href="castro://subscribe/{{ .URLNoScheme }}">Castro</a></li>
+        <li><a href="downcast://{{ .URLNoScheme }}">Downcast</a></li>
+        <li class="feed-dropdown-divider"></li>
+        <li><a href="{{ .URL }}">RSS Feed</a></li>
+        <li><a href="#" onclick="navigator.clipboard.writeText('{{ .URL }}');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy URL',1500);return false;">Copy URL</a></li>
+      </ul>
+    </details>
+    <span class="feed-delete">
+      <button class="feed-delete-btn" onclick="this.closest('.feed-delete').classList.add('confirming')" aria-label="Delete feed">&#x2715;</button>
+      <span class="feed-delete-confirm">
+        <span class="feed-delete-prompt">Delete?</span>
+        <button class="feed-delete-yes"
+                hx-delete="/ui/feeds/{{ .ID }}"
+                hx-target="#feed-{{ .ID }}"
+                hx-swap="outerHTML swap:0.3s">Yes</button>
+        <button class="feed-delete-no"
+                onclick="this.closest('.feed-delete').classList.remove('confirming')">No</button>
+      </span>
+    </span>
+  </div>
+</div>
 {{ end }}
 {{ end }}
 {{ if gt .NextPage 0 }}
