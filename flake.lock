@@ -199,11 +199,11 @@
         "unstable": "unstable"
       },
       "locked": {
-        "lastModified": 1770423376,
-        "narHash": "sha256-vhyn5UTUw8QSMnviZfx7fGPBbqK0jH8ku4QksO9TMZw=",
+        "lastModified": 1782848023,
+        "narHash": "sha256-O5u+PSALTQMiLexrN/WMLv1J3bx6auXGIxjXJaNEROk=",
         "owner": "ajaxbits",
         "repo": "yt-dlp-flake",
-        "rev": "8f6b8d721fd74946f9b9bd72130bab8ec8c6ae6d",
+        "rev": "1ba28249676cf9b31f2ebadf82fe29f27fed69cf",
         "type": "github"
       },
       "original": {
